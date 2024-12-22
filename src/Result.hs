@@ -1,4 +1,4 @@
-module Result (Result (..), fromOption) where
+module Result (Result (..), fromMaybe, mapError) where
 
 data Result e a = Ok a | Error e
 
@@ -21,6 +21,10 @@ instance Monad (Result e) where
       Ok a -> f a
       Error e -> Error e
 
-fromOption :: e -> Maybe a -> Result e a
-fromOption e Nothing = Error e
-fromOption _ (Just a) = Ok a
+fromMaybe :: e -> Maybe a -> Result e a
+fromMaybe e Nothing = Error e
+fromMaybe _ (Just a) = Ok a
+
+mapError :: (e1 -> e2) -> Result e1 a -> Result e2 a
+mapError f (Error e) = Error $ f e
+mapError _ (Ok a) = Ok a

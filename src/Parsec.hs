@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Parsec
   ( parseMatch,
@@ -16,7 +17,7 @@ module Parsec
 where
 
 import Parser (Parser (Parser))
-import Result
+import Result (Result (..))
 import Stream (Stream, consume)
 import Prelude hiding (all)
 
@@ -25,7 +26,7 @@ newtype ParseError = UnexpectedError String
 instance Show ParseError where
   show (UnexpectedError msg) = msg ++ "\n"
 
-consumer :: Stream s v => s -> Result [ParseError] (s, v)
+consumer :: (Stream s v) => s -> Result (s, [ParseError]) (s, v)
 consumer = consume [UnexpectedError "Missing input"]
 
 parseMatch :: (Stream s output) => (output -> Bool) -> Parser s [ParseError] output
