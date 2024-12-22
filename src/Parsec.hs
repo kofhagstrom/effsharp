@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Parsec
