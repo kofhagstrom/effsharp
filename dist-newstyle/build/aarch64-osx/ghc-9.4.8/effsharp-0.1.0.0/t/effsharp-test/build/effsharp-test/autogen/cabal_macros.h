@@ -30,6 +30,16 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_effsharp */
+/* package hspec-2.11.10 */
+#ifndef VERSION_hspec
+#define VERSION_hspec "2.11.10"
+#endif /* VERSION_hspec */
+#ifndef MIN_VERSION_hspec
+#define MIN_VERSION_hspec(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  11 || \
+  (major1) == 2 && (major2) == 11 && (minor) <= 10)
+#endif /* MIN_VERSION_hspec */
 
 /* tool gcc-16.0.0 */
 #ifndef TOOL_VERSION_gcc

@@ -1,4 +1,10 @@
 Test suite effsharp-test: RUNNING...
-Test suite not yet implemented.
+
+Parser
+  misc
+    newline [✔]
+
+Finished in 0.0007 seconds
+1 example, 0 failures
 Test suite effsharp-test: PASS
 Test suite logged to: /Users/fredrik/Documents/projects/effsharp/dist-newstyle/build/aarch64-osx/ghc-9.4.8/effsharp-0.1.0.0/t/effsharp-test/test/effsharp-0.1.0.0-effsharp-test.log

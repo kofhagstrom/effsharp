@@ -1,17 +1,18 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Parsec
-  ( parseMatch,
-  -- parseWhile,
-  -- parse,
-  -- skip,
-  -- oneOf,
-  -- noneOf,
-  -- ignore,
-  -- orElse,
-  -- manyOf,
-  -- next,
-  -- loop,
+  ( ParseError,
+    parseMatch,
+    -- parseWhile,
+    -- parse,
+    -- skip,
+    -- oneOf,
+    -- noneOf,
+    -- ignore,
+    -- orElse,
+    -- manyOf,
+    -- next,
+    -- loop,
   )
 where
 
@@ -38,14 +39,12 @@ parseMatch match =
 
 of_ :: (Stream a1 b1, Foldable t) => (b1 -> (t a2, a1)) -> Parser a1 [ParseError] (t a2)
 of_ f =
-  Parser $ \input ->
-    case consumer input of
-      Error (remainingInput, errors) -> Error (remainingInput, errors)
-      Ok (_, rest) ->
-        let (parsed, newRest) = f rest
-         in if null parsed
-              then Error (newRest, [UnexpectedError "Empty result"])
-              else Ok (newRest, parsed)
+  Parser $ \input -> do
+    (_, rest) <- consumer input
+    let (parsed, newRest) = f rest
+     in if null parsed
+          then Error (newRest, [UnexpectedError "Empty result"])
+          else Ok (newRest, parsed)
 
 -- oneOf options = of_ f
 -- where
