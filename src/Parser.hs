@@ -1,7 +1,10 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant lambda" #-}
 module Parser (Parser (..)) where
 
 import Control.Applicative (Alternative (empty, (<|>)))
-import Result (Result (..))
+import Result (Result (..), onError)
 
 newtype Parser input error output
   = Parser
@@ -24,12 +27,15 @@ instance (Semigroup input) => Applicative (Parser input error) where
 
 instance (Semigroup input, Monoid input, Monoid error) => Alternative (Parser input error) where
   empty = Parser $ \_ -> Error (mempty, mempty)
-  p1 <|> p2 = Parser $ \input ->
-    case run p1 input of
-      Ok a -> Ok a
-      Error (e, _) -> case run p2 input of
-        Ok a' -> Ok a'
-        Error (e', ts') -> Error (e <> e', ts')
+
+  p1 <|> p2 =
+    Parser $
+      \input ->
+        onError
+          (run p1 input)
+          ( \(e, _) ->
+              onError (run p2 input) (\(e', rest) -> Error (e <> e', rest))
+          )
 
 instance (Semigroup input) => Monad (Parser input error) where
   return = pure

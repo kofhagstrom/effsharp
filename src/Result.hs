@@ -1,4 +1,4 @@
-module Result (Result (..), fromMaybe, mapError) where
+module Result (Result (..), fromMaybe, mapError, onError) where
 
 data Result err ok = Ok ok | Error err deriving (Eq, Show)
 
@@ -28,3 +28,7 @@ fromMaybe _ (Just ok) = Ok ok
 mapError :: (err1 -> err2) -> Result err1 ok -> Result err2 ok
 mapError f (Error err) = Error $ f err
 mapError _ (Ok ok) = Ok ok
+
+onError :: Result err ok -> (err -> Result err ok) -> Result err ok
+onError (Error err) f = f err
+onError ok _ = ok
