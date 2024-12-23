@@ -2,8 +2,8 @@
 
 module Parsec
   ( ParseError,
-    parseMatch,
-    parseWhile,
+    match,
+    while,
     parse,
     skip,
     oneOf,
@@ -17,10 +17,11 @@ module Parsec
 where
 
 import Control.Applicative (Alternative, empty, (<|>))
+import Control.Monad (void)
 import Data.Functor (($>))
 import Parser (Parser (Parser))
 import Result (Result (..))
-import Stream (Stream, consume)
+import Stream (Stream, consume, uncons)
 import Prelude hiding (all)
 
 newtype ParseError = UnexpectedError String
@@ -28,11 +29,11 @@ newtype ParseError = UnexpectedError String
 instance Show ParseError where
   show (UnexpectedError msg) = msg ++ "\n"
 
-parseMatch :: (Stream s output) => (output -> Bool) -> Parser s [ParseError] output
-parseMatch match =
+match :: (Stream s output) => (output -> Bool) -> Parser s [ParseError] output
+match cond =
   Parser $ \input -> do
     (rest, value) <- consume [UnexpectedError "Missing input"] input
-    if match value
+    if cond value
       then Ok (rest, value)
       else Error (input, [UnexpectedError "Unexpected character"])
 
@@ -53,24 +54,27 @@ oneOf these = of_ f
       [] -> ([], [])
 
 manyOf :: (Stream [a] [a], Foldable t, Eq a) => t a -> Parser [a] [ParseError] [a]
-manyOf options = of_ . span $ (`elem` options)
+manyOf these = of_ . span $ (`elem` these)
 
 noneOf :: (Stream [a] [a], Foldable t, Eq a) => t a -> Parser [a] [ParseError] [a]
-noneOf options = of_ . break $ (`elem` options)
+noneOf these = of_ . break $ (`elem` these)
 
-parseWhile :: (a -> Bool) -> Parser [a] error [a]
-parseWhile f = Parser $ \input ->
-  let (str, rest) = span f input
-   in Ok (str, rest)
+while :: (Stream input a) => (a -> Bool) -> Parser input error [a]
+while cond = Parser $ \input ->
+  let go acc rest =
+        case uncons rest of
+          Just (rest', v) | cond v -> go (v : acc) rest'
+          _ -> Ok (rest, reverse acc)
+   in go [] input
 
 parse :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] [a]
-parse = traverse (parseMatch . (==))
+parse = traverse (match . (==))
 
 skip :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] ()
-skip c = () <$ parse c
+skip this = void $ parse this
 
 ignore :: (Functor f) => f a -> f ()
-ignore p = p $> ()
+ignore parser = parser $> ()
 
 orElse :: (Alternative t) => t a -> t a -> t a
 orElse = (<|>)

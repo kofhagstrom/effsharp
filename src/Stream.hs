@@ -25,6 +25,12 @@ instance Stream (IndexedStream value) value where
   uncons (IndexedStream []) = Nothing
   uncons (IndexedStream (Pos _ _ a : rest)) = Just (IndexedStream rest, a)
 
+instance (Show a) => Show (IndexedStream a) where
+  show stream =
+    case uncons stream of
+      Just (this, rest) -> show this ++ show rest
+      Nothing -> ""
+
 indexedStreamFromString :: String -> IndexedStream Char
 indexedStreamFromString str = IndexedStream sourcePositions
   where
