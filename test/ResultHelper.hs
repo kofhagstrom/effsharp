@@ -2,10 +2,10 @@ module ResultHelper (unwrapOk, unwrapError) where
 
 import Result (Result (..))
 
-unwrapOk :: Result err ok -> ok
+unwrapOk :: (Show err) => Result err ok -> ok
 unwrapOk (Ok ok) = ok
-unwrapOk (Error _) = error "Expected ok, got error"
+unwrapOk (Error e) = error $ "Expected ok, got error" ++ show e
 
-unwrapError :: Result err ok -> err
+unwrapError :: (Show ok) => Result err ok -> err
 unwrapError (Error e) = e
-unwrapError (Ok _) = error "Expected error, got ok"
+unwrapError (Ok a) = error $ "Expected error, got ok" ++ show a

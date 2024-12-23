@@ -2,23 +2,24 @@
 
 module ParserSpec (spec) where
 
-import Parsec
-import Parser
+import Parsec (ParseError, noneOf)
+import Parser (Parser (run))
+import Result (Result)
 import ResultHelper (unwrapOk)
-import Stream
-import Test.Hspec
+import Stream (IndexedStream, indexedStreamFromString)
+import Test.Hspec (Spec, describe, it, shouldBe)
 
-parseH :: Parser (IndexedStream Char) error String
-parseH = while isH
-  where
-    isH 'h' = True
-    isH _ = False
+digits :: Parser (IndexedStream Char) [ParseError] Char
+digits = noneOf "1234567890"
 
 indexedInput :: IndexedStream Char
-indexedInput = indexedStreamFromString "hhhej"
+indexedInput = indexedStreamFromString "123hhhej"
+
+runThis :: Result (IndexedStream Char, [ParseError]) (IndexedStream Char, Char)
+runThis = run digits indexedInput
 
 spec :: Spec
 spec = do
   describe "misc" $ do
     it "parseMatch" $
-      unwrapOk (snd <$> run parseH indexedInput) `shouldBe` "hhh"
+      unwrapOk (snd <$> runThis) `shouldBe` '1'
