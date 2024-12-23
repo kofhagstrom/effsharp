@@ -2,7 +2,7 @@ Test suite effsharp-test: RUNNING...
 
 Parser
   misc
-    newline [✔]
+    parseMatch [✔]
 
 Finished in 0.0007 seconds
 1 example, 0 failures

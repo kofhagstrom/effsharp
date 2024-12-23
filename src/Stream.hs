@@ -10,8 +10,8 @@ class Stream s v | s -> v where
   uncons :: s -> Maybe (s, v)
 
 consume :: (Stream s v) => e -> s -> Result (s, e) (s, v)
-consume e input =
-  mapError (input,) (fromMaybe e (uncons input))
+consume err input =
+  mapError (input,) . fromMaybe err $ uncons input
 
 newtype Row = Row Int
 

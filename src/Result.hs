@@ -1,30 +1,30 @@
 module Result (Result (..), fromMaybe, mapError) where
 
-data Result e a = Ok a | Error e
+data Result err ok = Ok ok | Error err
 
-instance Functor (Result e) where
+instance Functor (Result err) where
   fmap f (Ok a) = Ok (f a)
-  fmap _ (Error e) = Error e
+  fmap _ (Error err) = Error err
 
-instance Applicative (Result e) where
+instance Applicative (Result err) where
   pure = Ok
-  res1 <*> res2 =
-    case res1 of
+  fRes <*> res =
+    case fRes of
       Ok f ->
-        f <$> res2
-      Error e -> Error e
+        f <$> res
+      Error err -> Error err
 
-instance Monad (Result e) where
+instance Monad (Result err) where
   return = pure
   res >>= f =
     case res of
       Ok a -> f a
-      Error e -> Error e
+      Error err -> Error err
 
-fromMaybe :: e -> Maybe a -> Result e a
-fromMaybe e Nothing = Error e
+fromMaybe :: err -> Maybe ok -> Result err ok
+fromMaybe err Nothing = Error err
 fromMaybe _ (Just a) = Ok a
 
-mapError :: (e1 -> e2) -> Result e1 a -> Result e2 a
-mapError f (Error e) = Error $ f e
+mapError :: (err1 -> err2) -> Result err1 ok -> Result err2 ok
+mapError f (Error err) = Error $ f err
 mapError _ (Ok a) = Ok a
