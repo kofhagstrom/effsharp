@@ -3,7 +3,7 @@ module Result (Result (..), fromMaybe, mapError) where
 data Result err ok = Ok ok | Error err
 
 instance Functor (Result err) where
-  fmap f (Ok a) = Ok (f a)
+  fmap f (Ok ok) = Ok (f ok)
   fmap _ (Error err) = Error err
 
 instance Applicative (Result err) where
@@ -18,13 +18,13 @@ instance Monad (Result err) where
   return = pure
   res >>= f =
     case res of
-      Ok a -> f a
+      Ok ok -> f ok
       Error err -> Error err
 
 fromMaybe :: err -> Maybe ok -> Result err ok
 fromMaybe err Nothing = Error err
-fromMaybe _ (Just a) = Ok a
+fromMaybe _ (Just ok) = Ok ok
 
 mapError :: (err1 -> err2) -> Result err1 ok -> Result err2 ok
 mapError f (Error err) = Error $ f err
-mapError _ (Ok a) = Ok a
+mapError _ (Ok ok) = Ok ok

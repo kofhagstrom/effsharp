@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
 
 module Parsec
   ( ParseError,
@@ -21,7 +22,7 @@ import Control.Monad (void)
 import Data.Functor (($>))
 import GHC.Base (many)
 import Parser (Parser (Parser))
-import Result (Result (..))
+import Result (Result (..), mapError)
 import Stream (Stream, consume, uncons)
 import Prelude hiding (all)
 
@@ -33,7 +34,7 @@ instance Show ParseError where
 satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError] output
 satisfy cond =
   Parser $ \input -> do
-    (rest, value) <- consume [UnexpectedError "Missing input"] input
+    (rest, value) <- mapError (input,) $ consume [UnexpectedError "Missing input"] input
     if cond value
       then Ok (rest, value)
       else Error (input, [UnexpectedError "Unexpected character"])
@@ -68,7 +69,7 @@ orElse :: (Alternative t) => t a -> t a -> t a
 orElse = (<|>)
 
 next :: (Stream s output) => Parser s [ParseError] output
-next = Parser $ consume [UnexpectedError "Missing input"]
+next = Parser $ \input -> mapError (input,) $ consume [UnexpectedError "Missing input"] input
 
 -- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
 -- parserB is a parser which parses Bs, and tokensToOutput is a function which matches input tokens to corresponding outputs

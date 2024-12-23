@@ -2,11 +2,11 @@
 
 module ParserSpec (spec) where
 
+import IndexedStream (IndexedStream, indexedStreamFromString)
 import Parsec (ParseError, oneOf)
 import Parser (Parser (run))
 import Result (Result)
 import ResultHelper (unwrapOk)
-import Stream (IndexedStream, indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
 digits :: Parser (IndexedStream Char) [ParseError] Char
