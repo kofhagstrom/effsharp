@@ -2,7 +2,7 @@
 
 module ParserSpec (spec) where
 
-import Parsec (ParseError, noneOf)
+import Parsec (ParseError, oneOf)
 import Parser (Parser (run))
 import Result (Result)
 import ResultHelper (unwrapOk)
@@ -10,7 +10,7 @@ import Stream (IndexedStream, indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
 digits :: Parser (IndexedStream Char) [ParseError] Char
-digits = noneOf "1234567890"
+digits = oneOf "1234567890"
 
 indexedInput :: IndexedStream Char
 indexedInput = indexedStreamFromString "123hhhej"

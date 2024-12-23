@@ -2,9 +2,9 @@
 
 module Parsec
   ( ParseError,
-    match,
+    satisfy,
     while,
-    parse,
+    exact,
     skip,
     oneOf,
     noneOf,
@@ -30,25 +30,25 @@ newtype ParseError = UnexpectedError String
 instance Show ParseError where
   show (UnexpectedError msg) = msg ++ "\n"
 
-match :: (Stream s output) => (output -> Bool) -> Parser s [ParseError] output
-match cond =
+satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError] output
+satisfy cond =
   Parser $ \input -> do
     (rest, value) <- consume [UnexpectedError "Missing input"] input
     if cond value
       then Ok (rest, value)
       else Error (input, [UnexpectedError "Unexpected character"])
 
-parse :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] [a]
-parse = traverse (match . (==))
+exact :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] [a]
+exact = traverse (satisfy . (==))
 
-oneOf :: (Stream s output, Eq output) => [output] -> Parser s [ParseError] output
-oneOf these = match (`elem` these)
+oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError] output
+oneOf these = satisfy (`elem` these)
 
-manyOf :: (Stream s output, Eq output, Monoid s) => [output] -> Parser s [ParseError] [output]
+manyOf :: (Monoid input, Stream input a, Foldable t, Eq a) => t a -> Parser input [ParseError] [a]
 manyOf these = many (oneOf these)
 
-noneOf :: (Stream s output, Eq output) => [output] -> Parser s [ParseError] output
-noneOf these = match (`notElem` these)
+noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError] output
+noneOf these = satisfy (`notElem` these)
 
 while :: (Stream input a) => (a -> Bool) -> Parser input error [a]
 while cond = Parser $ \input ->
@@ -59,7 +59,7 @@ while cond = Parser $ \input ->
    in go [] input
 
 skip :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] ()
-skip this = void $ parse this
+skip this = void $ exact this
 
 ignore :: (Functor f) => f a -> f ()
 ignore p = p $> ()
@@ -73,12 +73,12 @@ next = Parser $ consume [UnexpectedError "Missing input"]
 -- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
 -- parserB is a parser which parses Bs, and tokensToOutput is a function which matches input tokens to corresponding outputs
 loop :: (Monoid s, Stream s t) => (t -> b -> b -> Maybe b) -> Parser s [ParseError] b -> Parser s [ParseError] b
-loop tokensToOutput parserB = parserB >>= loop'
+loop tokensToOutput parseB = parseB >>= loop'
   where
-    loop' e =
+    loop' b =
       ( do
-          t <- next
-          p <- parserB
-          maybe empty loop' (tokensToOutput t e p)
+          token <- next
+          b' <- parseB
+          maybe empty loop' (tokensToOutput token b b')
       )
-        `orElse` return e
+        `orElse` return b
