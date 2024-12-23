@@ -1,6 +1,6 @@
 module Result (Result (..), fromMaybe, mapError) where
 
-data Result err ok = Ok ok | Error err
+data Result err ok = Ok ok | Error err deriving (Eq, Show)
 
 instance Functor (Result err) where
   fmap f (Ok ok) = Ok (f ok)

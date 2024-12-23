@@ -5,17 +5,24 @@ module IndexedStream (IndexedStream (..), indexedStreamFromString) where
 
 import Stream (Stream, uncons)
 
-newtype Row = Row Int
+newtype Row = Row Int deriving (Eq)
 
-newtype Col = Col Int
+newtype Col = Col Int deriving (Eq)
 
-data SourcePosition a = Pos Row Col a
+data SourcePosition a = Pos Row Col a deriving (Eq)
 
-newtype IndexedStream value = IndexedStream [SourcePosition value]
+newtype IndexedStream value = IndexedStream [SourcePosition value] deriving (Eq)
 
 instance Stream (IndexedStream value) value where
   uncons (IndexedStream []) = Nothing
   uncons (IndexedStream (Pos _ _ a : rest)) = Just (IndexedStream rest, a)
+
+instance Semigroup (IndexedStream value) where
+  (<>) (IndexedStream xs) (IndexedStream ys) = IndexedStream (xs ++ ys)
+
+instance Monoid (IndexedStream value) where
+  mempty = IndexedStream []
+  mappend = (<>)
 
 indexedStreamFromString :: String -> IndexedStream Char
 indexedStreamFromString str = IndexedStream sourcePositions

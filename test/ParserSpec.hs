@@ -2,24 +2,35 @@
 
 module ParserSpec (spec) where
 
-import IndexedStream (IndexedStream, indexedStreamFromString)
-import Parsec (ParseError, oneOf)
+import IndexedStream (indexedStreamFromString)
+import Parsec (ParseError (..), digit, digits, exact)
 import Parser (Parser (run))
-import Result (Result)
-import ResultHelper (unwrapOk)
+import Result (Result (Ok))
+import ResultHelper (unwrapError)
 import Test.Hspec (Spec, describe, it, shouldBe)
+import Prelude hiding (error)
 
-digits :: Parser (IndexedStream Char) [ParseError] Char
-digits = oneOf "1234567890"
+ok :: Parser a error b -> a -> Result (a, error) b
+ok f input = snd <$> run f input
 
-indexedInput :: IndexedStream Char
-indexedInput = indexedStreamFromString "123hhhej"
-
-runThis :: Result (IndexedStream Char, [ParseError]) (IndexedStream Char, Char)
-runThis = run digits indexedInput
+error :: (Show ok) => Result (a, b) ok -> b
+error runner = snd $ unwrapError runner
 
 spec :: Spec
 spec = do
   describe "misc" $ do
-    it "parseMatch" $
-      unwrapOk (snd <$> runThis) `shouldBe` '1'
+    it "digit_ok" $
+      let input = indexedStreamFromString "123hej"
+       in ok digit input `shouldBe` Ok '1'
+    it "digit_error" $
+      let input = indexedStreamFromString "hej"
+       in error (run digit input) `shouldBe` [UnexpectedToken 'h']
+    it "digits_ok" $
+      let input = indexedStreamFromString "123hej"
+       in ok digits input `shouldBe` Ok "123"
+    it "digits_error" $
+      let input = indexedStreamFromString "hej"
+       in error (run digits input) `shouldBe` [UnexpectedToken 'h']
+    it "exact_ok" $
+      let input = indexedStreamFromString "hej"
+       in ok (exact "hej") input `shouldBe` Ok "hej"

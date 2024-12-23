@@ -2,7 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 
 module Parsec
-  ( ParseError,
+  ( ParseError (..),
     satisfy,
     while,
     exact,
@@ -10,45 +10,48 @@ module Parsec
     oneOf,
     noneOf,
     ignore,
-    orElse,
     manyOf,
     next,
     loop,
+    digit,
+    digits,
+    letter,
+    letters,
   )
 where
 
-import Control.Applicative (Alternative, empty, (<|>))
+import Control.Applicative (Alternative (some), empty, (<|>))
 import Control.Monad (void)
-import Data.Functor (($>))
-import GHC.Base (many)
 import Parser (Parser (Parser))
 import Result (Result (..), mapError)
 import Stream (Stream, consume, uncons)
 import Prelude hiding (all)
 
-newtype ParseError = UnexpectedError String
+data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String deriving (Eq)
 
-instance Show ParseError where
+instance (Show t) => Show (ParseError t) where
   show (UnexpectedError msg) = msg ++ "\n"
+  show MissingInput = "Missing input"
+  show (UnexpectedToken t) = "Unexpected token: " ++ show t
 
-satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError] output
+satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError output] output
 satisfy cond =
   Parser $ \input -> do
-    (rest, value) <- mapError (input,) $ consume [UnexpectedError "Missing input"] input
+    (rest, value) <- mapError (input,) $ consume [MissingInput] input
     if cond value
       then Ok (rest, value)
-      else Error (input, [UnexpectedError "Unexpected character"])
+      else Error (input, [UnexpectedToken value])
 
-exact :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] [a]
+exact :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] [a]
 exact = traverse (satisfy . (==))
 
-oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError] output
+oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
 oneOf these = satisfy (`elem` these)
 
-manyOf :: (Monoid input, Stream input a, Foldable t, Eq a) => t a -> Parser input [ParseError] [a]
-manyOf these = many (oneOf these)
+manyOf :: (Monoid input, Stream input a, Foldable t, Eq a) => t a -> Parser input [ParseError a] [a]
+manyOf these = some (oneOf these)
 
-noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError] output
+noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
 noneOf these = satisfy (`notElem` these)
 
 while :: (Stream input a) => (a -> Bool) -> Parser input error [a]
@@ -59,21 +62,18 @@ while cond = Parser $ \input ->
           _ -> Ok (rest, reverse acc)
    in go [] input
 
-skip :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError] ()
-skip this = void $ exact this
+skip :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError a] ()
+skip = void . exact
 
 ignore :: (Functor f) => f a -> f ()
-ignore p = p $> ()
+ignore = void
 
-orElse :: (Alternative t) => t a -> t a -> t a
-orElse = (<|>)
-
-next :: (Stream s output) => Parser s [ParseError] output
-next = Parser $ \input -> mapError (input,) $ consume [UnexpectedError "Missing input"] input
+next :: (Stream s output) => Parser s [ParseError s] output
+next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
 
 -- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
 -- parserB is a parser which parses Bs, and tokensToOutput is a function which matches input tokens to corresponding outputs
-loop :: (Monoid s, Stream s t) => (t -> b -> b -> Maybe b) -> Parser s [ParseError] b -> Parser s [ParseError] b
+loop :: (Monoid s, Stream s t) => (t -> b -> b -> Maybe b) -> Parser s [ParseError s] b -> Parser s [ParseError s] b
 loop tokensToOutput parseB = parseB >>= loop'
   where
     loop' b =
@@ -82,4 +82,16 @@ loop tokensToOutput parseB = parseB >>= loop'
           b' <- parseB
           maybe empty loop' (tokensToOutput token b b')
       )
-        `orElse` return b
+        <|> return b
+
+digit :: (Stream stream Char) => Parser stream [ParseError Char] Char
+digit = oneOf "1234567890"
+
+digits :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
+digits = some digit
+
+letter :: (Stream stream Char) => Parser stream [ParseError Char] Char
+letter = oneOf "abcdefghijklmnopqrstuvwxyz"
+
+letters :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
+letters = some letter
