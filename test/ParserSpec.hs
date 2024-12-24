@@ -2,19 +2,13 @@
 
 module ParserSpec (spec) where
 
+import Expects (error, ok)
 import IndexedStream (indexedStreamFromString)
 import Parsec (ParseError (..), exact, skip)
 import Parser (Parser (run))
 import Result (Result (Ok))
-import ResultHelper (unwrapError)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Prelude hiding (error)
-
-ok :: Parser a error b -> a -> Result (a, error) b
-ok f input = snd <$> run f input
-
-error :: (Show ok) => Result (a, b) ok -> b
-error runner = snd $ unwrapError runner
 
 spec :: Spec
 spec = do
