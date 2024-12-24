@@ -115,6 +115,7 @@ test-suite effsharp-test
   -- Modules included in this executable, other than Main.
   other-modules:
     Expects
+    LexerSpec
     ParserSpec
     ResultHelper
 

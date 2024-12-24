@@ -9,14 +9,9 @@ module Parsec
     skip,
     oneOf,
     noneOf,
-    ignore,
     manyOf,
     next,
     loop,
-    digit,
-    digits,
-    letter,
-    letters,
   )
 where
 
@@ -56,17 +51,14 @@ noneOf these = satisfy (`notElem` these)
 
 while :: (Stream input a) => (a -> Bool) -> Parser input error [a]
 while cond = Parser $ \input ->
-  let go acc rest =
+  let consumer acc rest =
         case uncons rest of
-          Just (rest', v) | cond v -> go (v : acc) rest'
+          Just (rest', v) | cond v -> consumer (v : acc) rest'
           _ -> Ok (rest, reverse acc)
-   in go [] input
+   in consumer [] input
 
-skip :: (Eq a, Stream [a] a) => [a] -> Parser [a] [ParseError a] ()
+skip :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] ()
 skip = void . exact
-
-ignore :: (Functor f) => f a -> f ()
-ignore = void
 
 next :: (Stream s output) => Parser s [ParseError s] output
 next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
@@ -83,15 +75,3 @@ loop tokensToOutput parseB = parseB >>= loop'
           maybe empty loop' (tokensToOutput token b b')
       )
         <|> return b
-
-digit :: (Stream stream Char) => Parser stream [ParseError Char] Char
-digit = oneOf "1234567890"
-
-digits :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
-digits = some digit
-
-letter :: (Stream stream Char) => Parser stream [ParseError Char] Char
-letter = oneOf "abcdefghijklmnopqrstuvwxyz"
-
-letters :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
-letters = some letter

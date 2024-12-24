@@ -3,7 +3,7 @@
 module ParserSpec (spec) where
 
 import IndexedStream (indexedStreamFromString)
-import Parsec (ParseError (..), digit, digits, exact)
+import Parsec (ParseError (..), exact, skip)
 import Parser (Parser (run))
 import Result (Result (Ok))
 import ResultHelper (unwrapError)
@@ -19,18 +19,12 @@ error runner = snd $ unwrapError runner
 spec :: Spec
 spec = do
   describe "misc" $ do
-    it "digit_ok" $
-      let input = indexedStreamFromString "123hej"
-       in ok digit input `shouldBe` Ok '1'
-    it "digit_error" $
-      let input = indexedStreamFromString "hej"
-       in error (run digit input) `shouldBe` [UnexpectedToken 'h']
-    it "digits_ok" $
-      let input = indexedStreamFromString "123hej"
-       in ok digits input `shouldBe` Ok "123"
-    it "digits_error" $
-      let input = indexedStreamFromString "hej"
-       in error (run digits input) `shouldBe` [UnexpectedToken 'h']
     it "exact_ok" $
       let input = indexedStreamFromString "hej"
        in ok (exact "hej") input `shouldBe` Ok "hej"
+    it "skip_ok" $
+      let input = indexedStreamFromString "hejhej"
+       in ok (skip "hej") input `shouldBe` Ok ()
+    it "skip_error" $
+      let input = indexedStreamFromString "hejhej"
+       in error (run (skip "oj") input) `shouldBe` [UnexpectedToken 'h']
