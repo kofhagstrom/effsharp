@@ -22,6 +22,6 @@ spec = do
     it "lettersOrDigits_ok" $
       indexedStreamFromString "1h_" |> testRun lettersOrDigits `shouldBe` Ok "1h"
     it "lettersOrDigits_error" $
-      indexedStreamFromString "_1h" |> testRun letterOrDigit `shouldBe` Error UnexpectedToken
+      indexedStreamFromString "_1h" |> testRun letterOrDigit `shouldBe` Error (MultipleError [UnexpectedToken, UnexpectedToken])
     it "number_ok" $
       indexedStreamFromString "12345" |> testRun number `shouldBe` Ok 12345

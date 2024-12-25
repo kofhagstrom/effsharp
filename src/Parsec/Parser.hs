@@ -2,7 +2,7 @@ module Parsec.Parser (Parser (..), (*>>=)) where
 
 import Base.Result (Result (..), onError)
 import Control.Applicative (Alternative (empty, (<|>)))
-import Parsec.Error (ParseError (UnexpectedError))
+import Parsec.Error (ParseError (MultipleError, UnexpectedError))
 
 newtype Parser input output
   = Parser
@@ -30,8 +30,8 @@ instance (Semigroup input, Monoid input) => Alternative (Parser input) where
       \input ->
         onError
           (run p1 input)
-          ( \(e, _) ->
-              onError (run p2 input) (\(e', rest) -> Error (e <> e', rest))
+          ( \(_, e) ->
+              onError (run p2 input) (\(rest, e') -> Error (rest, MultipleError [e, e']))
           )
 
 instance (Semigroup input) => Monad (Parser input) where
