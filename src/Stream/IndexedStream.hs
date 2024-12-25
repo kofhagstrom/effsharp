@@ -33,13 +33,9 @@ instance Monoid (IndexedStream value) where
 indexedStreamFromString :: String -> IndexedStream Char
 indexedStreamFromString str = IndexedStream sourcePositions
   where
-    sourcePositions = concatMap processRow (zip [1 ..] ls)
-    ls = lines str
+    sourcePositions = concatMap processRow $ zip [1 ..] $ lines str
     processRow (rowNum, row) = zipWith (Pos (Row rowNum) . Col) [1 ..] row
 
-showIndexedStream :: (Show a) => IndexedStream a -> String
-showIndexedStream (IndexedStream (Pos _ _ a : rest)) = show a ++ showIndexedStream (IndexedStream rest)
-showIndexedStream (IndexedStream []) = ""
-
 instance (Show a) => Show (IndexedStream a) where
-  show = showIndexedStream
+  show (IndexedStream (Pos _ _ a : rest)) = show a ++ show (IndexedStream rest)
+  show (IndexedStream []) = ""

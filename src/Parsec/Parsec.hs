@@ -27,30 +27,7 @@ import Parsec.Parser (Parser (Parser, run), (*>>=))
 import Stream.Stream (Stream, consume, uncons)
 import Prelude hiding (all, or)
 
-satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError output] output
-satisfy cond =
-  Parser $ \input -> do
-    (rest, value) <- mapError (input,) $ consume [MissingInput] input
-    if cond value
-      then Ok (rest, value)
-      else Error (input, [UnexpectedToken value])
-
-condition :: (Stream input output, Eq output) => output -> Parser input [ParseError output] output
-condition this = satisfy (this ==)
-
-exact :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] [a]
-exact = traverse condition
-
-oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
-oneOf these = satisfy (`elem` these)
-
-manyOf :: (Monoid input, Stream input a, Foldable t, Eq a) => t a -> Parser input [ParseError a] [a]
-manyOf these = some (oneOf these)
-
-noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
-noneOf these = satisfy (`notElem` these)
-
-while :: (Stream input a) => (a -> Bool) -> Parser input error [a]
+while :: (Stream input a) => (a -> Bool) -> Parser input [a]
 while cond = Parser $ \input ->
   let consumer acc rest =
         case uncons rest of
@@ -58,23 +35,47 @@ while cond = Parser $ \input ->
           _ -> Ok (rest, reverse acc)
    in consumer [] input
 
-skip :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] ()
+satisfy :: (Stream input output) => (output -> Bool) -> Parser input output
+satisfy cond =
+  Parser $ \input -> do
+    (rest, value) <- mapError (input,) $ consume [MissingInput] input
+    if cond value
+      then Ok (rest, value)
+      else Error (input, [UnexpectedToken])
+
+condition :: (Stream input output, Eq output) => output -> Parser input output
+condition this = satisfy (this ==)
+
+exact :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [a]
+exact = traverse condition
+
+oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input output
+oneOf these = satisfy (`elem` these)
+
+manyOf :: (Monoid input, Stream input a, Foldable t, Eq a) => t a -> Parser input [a]
+manyOf these = some (oneOf these)
+
+noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input output
+noneOf these = satisfy (`notElem` these)
+
+skip :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input ()
 skip = void . exact
 
-next :: (Stream s t) => Parser s [ParseError t] t
+next :: (Stream s t) => Parser s t
 next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
 
--- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
-loop :: (Monoid s, Stream s t) => Parser s [ParseError t] b -> Parser s [ParseError t] b -> Parser s [ParseError t] [b]
-loop parseB sep =
+-- parses a grammar of type <A> ::= <B> { <sep> <B> }
+loop :: (Monoid s, Stream s t) => Parser s b -> Parser s b -> Parser s [b]
+loop value sep =
   do
-    b <- parseB
+    b <- value
     loop' b
   where
     loop' b =
       ( do
           s <- sep
-          rest <- parseB >>= loop'
+          anotherOne <- value
+          rest <- loop' anotherOne
           return (b : s : rest)
       )
         <|> return [b]

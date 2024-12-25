@@ -7,30 +7,23 @@ import Lexer (digit, digits, letterOrDigit, lettersOrDigits, number)
 import Parsec.Error (ParseError (..))
 import Stream.IndexedStream (indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
-import TestHelper (testRun)
+import TestHelper (testRun, (|>))
 import Prelude hiding (error)
 
 spec :: Spec
 spec = do
   describe "misc" $ do
     it "digit_ok" $
-      let input = indexedStreamFromString "123hej"
-       in testRun digit input `shouldBe` Ok '1'
+      indexedStreamFromString "123hej" |> testRun digit `shouldBe` Ok '1'
     it "digit_error" $
-      let input = indexedStreamFromString "hej"
-       in testRun digit input `shouldBe` Error [UnexpectedToken 'h']
+      indexedStreamFromString "hej" |> testRun digit `shouldBe` Error [UnexpectedToken]
     it "digits_ok" $
-      let input = indexedStreamFromString "123hej"
-       in testRun digits input `shouldBe` Ok "123"
+      indexedStreamFromString "123hej" |> testRun digits `shouldBe` Ok "123"
     it "digits_error" $
-      let input = indexedStreamFromString "hej"
-       in testRun digits input `shouldBe` Error [UnexpectedToken 'h']
+      indexedStreamFromString "hej" |> testRun digits `shouldBe` Error [UnexpectedToken]
     it "lettersOrDigits_ok" $
-      let input = indexedStreamFromString "1h_"
-       in testRun lettersOrDigits input `shouldBe` Ok "1h"
+      indexedStreamFromString "1h_" |> testRun lettersOrDigits `shouldBe` Ok "1h"
     it "lettersOrDigits_error" $
-      let input = indexedStreamFromString "_1h"
-       in testRun letterOrDigit input `shouldBe` Error [UnexpectedToken '_']
+      indexedStreamFromString "_1h" |> testRun letterOrDigit `shouldBe` Error [UnexpectedToken]
     it "number_ok" $
-      let input = indexedStreamFromString "12345"
-       in testRun number input `shouldBe` Ok 12345
+      indexedStreamFromString "12345" |> testRun number `shouldBe` Ok 12345

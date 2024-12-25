@@ -1,8 +1,8 @@
 module Parsec.Error (ParseError (..)) where
 
-data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String deriving (Eq)
+data ParseError = MissingInput | UnexpectedToken | UnexpectedError String deriving (Eq)
 
-instance (Show t) => Show (ParseError t) where
+instance Show ParseError where
   show (UnexpectedError msg) = msg ++ "\n"
   show MissingInput = "Missing input"
-  show (UnexpectedToken t) = "Unexpected token: " ++ show t
+  show UnexpectedToken = "Unexpected token"

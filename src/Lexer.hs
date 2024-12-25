@@ -11,7 +11,7 @@ import Stream.Stream
 import Text.Read (readMaybe)
 import Prelude hiding (or)
 
-type Lexer a = Parser (IndexedStream Char) [ParseError a] a
+type Lexer a = Parser (IndexedStream Char) a
 
 digitChars :: String
 digitChars = "1234567890"
@@ -19,28 +19,28 @@ digitChars = "1234567890"
 alphabet :: String
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
-digit :: (Stream stream Char) => Parser stream [ParseError Char] Char
+digit :: (Stream stream Char) => Parser stream Char
 digit = oneOf digitChars
 
-digits :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
+digits :: (Stream stream Char, Monoid stream) => Parser stream String
 digits = manyOf digitChars
 
-letter :: (Stream stream Char) => Parser stream [ParseError Char] Char
+letter :: (Stream stream Char) => Parser stream Char
 letter = oneOf alphabet
 
-letters :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
+letters :: (Stream stream Char, Monoid stream) => Parser stream String
 letters = manyOf alphabet
 
-letterOrDigit :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] Char
+letterOrDigit :: (Stream stream Char, Monoid stream) => Parser stream Char
 letterOrDigit = letter `or` digit
 
-lettersOrDigits :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] String
+lettersOrDigits :: (Stream stream Char, Monoid stream) => Parser stream String
 lettersOrDigits = some letterOrDigit
 
-number :: (Stream stream Char, Monoid stream) => Parser stream [ParseError Char] Integer
-number = manyOf "0123456789" *>>= readInt
+number :: Parser (IndexedStream Char) Integer
+number = digits *>>= readInt
   where
     readInt token =
       case readMaybe token of
         Just int -> Ok int
-        Nothing -> Error [UnexpectedToken . head $ token]
+        Nothing -> Error [UnexpectedToken]
