@@ -3,7 +3,7 @@ module Parsec.Parser (Parser (..), (*>>=)) where
 import Base.Result (Result (..), onError)
 import Control.Applicative (Alternative (empty, (<|>)))
 import Parsec.Error (ParseError (MultipleError, UnexpectedError))
-import Stream.Stream
+import Stream.Stream (Stream)
 
 newtype (Stream s v) => Parser s v output
   = Parser
@@ -41,7 +41,7 @@ instance (Semigroup input, Stream input value) => Monad (Parser input value) whe
     (input', a) <- run p input
     run (f a) input'
 
-bindError :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) output) -> Parser s v output
+bindError :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) o) -> Parser s v o
 bindError p f = Parser $
   \input -> do
     (input', token) <- run p input
@@ -49,5 +49,5 @@ bindError p f = Parser $
       Ok ok -> Ok (input', ok)
       Error e -> Error (input, e)
 
-(*>>=) :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) output) -> Parser s v output
+(*>>=) :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) o) -> Parser s v o
 (*>>=) = bindError

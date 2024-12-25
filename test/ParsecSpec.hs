@@ -1,7 +1,7 @@
 module ParsecSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
-import Parsec.Parsec (ParseError (..), Parser, condition, exact, loop, manyOf, skip, (*>>=))
+import Parsec.Parsec (ParseError (..), Parser, condition, exact, loop, manyOf, next, skip, (*>>=))
 import Stream.IndexedStream (IndexedStream, indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
@@ -10,13 +10,13 @@ import Prelude hiding (error, read)
 
 data Token = Number Integer | Comma deriving (Show, Eq)
 
-number :: Parser (IndexedStream Char) Char Integer
-number = manyOf "0123456789" *>>= readInt
+number :: Parser (IndexedStream Char) Char Token
+number = Number <$> (manyOf "0123456789" *>>= readInt)
   where
     readInt token =
       case readMaybe token of
         Just int -> Ok int
-        Nothing -> Error $ UnexpectedToken (head token)
+        Nothing -> Error $ UnexpectedError $ "Could not parse integer from " ++ token
 
 comma :: Parser (IndexedStream Char) Char Token
 comma = Comma <$ condition ','
@@ -38,4 +38,10 @@ spec = do
        in testRun (skip "oj") input `shouldBe` Error (UnexpectedToken 'h')
     it "loop_ok" $
       let input = indexedStreamFromString "1,2,3"
-       in testRun (loop (Number <$> number) comma) input `shouldBe` Ok [Number 1, Comma, Number 2, Comma, Number 3]
+       in testRun (loop number comma) input `shouldBe` Ok [Number 1, Comma, Number 2, Comma, Number 3]
+    it "next_ok" $
+      let input = indexedStreamFromString "hej"
+       in testRun next input `shouldBe` Ok 'h'
+    it "next_error" $
+      let input = indexedStreamFromString ""
+       in testRun next input `shouldBe` Error MissingInput
