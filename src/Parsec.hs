@@ -12,15 +12,18 @@ module Parsec
     manyOf,
     next,
     loop,
+    or,
+    match,
   )
 where
 
-import Control.Applicative (Alternative (some), empty, (<|>))
+import Control.Applicative (Alternative (some), (<|>))
 import Control.Monad (void)
-import Parser (Parser (Parser))
+import Parser (Parser (Parser), run)
 import Result (Result (..), mapError)
 import Stream (Stream, consume, uncons)
-import Prelude hiding (all)
+import Text.Read (readMaybe)
+import Prelude hiding (all, or)
 
 data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String deriving (Eq)
 
@@ -37,8 +40,11 @@ satisfy cond =
       then Ok (rest, value)
       else Error (input, [UnexpectedToken value])
 
+match :: (Stream input output, Eq output) => output -> Parser input [ParseError output] output
+match this = satisfy (this ==)
+
 exact :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] [a]
-exact = traverse (satisfy . (==))
+exact = traverse match
 
 oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
 oneOf these = satisfy (`elem` these)
@@ -60,18 +66,20 @@ while cond = Parser $ \input ->
 skip :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] ()
 skip = void . exact
 
-next :: (Stream s output) => Parser s [ParseError s] output
+next :: (Stream s t) => Parser s [ParseError t] t
 next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
 
 -- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
--- parserB is a parser which parses Bs, and tokensToOutput is a function which matches input tokens to corresponding outputs
-loop :: (Monoid s, Stream s t) => (t -> b -> b -> Maybe b) -> Parser s [ParseError s] b -> Parser s [ParseError s] b
-loop tokensToOutput parseB = parseB >>= loop'
+loop :: (Monoid s, Stream s t) => Parser s [ParseError t] b -> Parser s [ParseError t] b -> Parser s [ParseError t] [b]
+loop parseB sep = parseB >>= loop'
   where
     loop' b =
       ( do
-          token <- next
-          b' <- parseB
-          maybe empty loop' (tokensToOutput token b b')
+          s <- sep
+          rest <- parseB >>= loop'
+          return (b : s : rest)
       )
-        <|> return b
+        <|> return [b]
+
+or :: (Alternative f) => f a -> f a -> f a
+or = (<|>)

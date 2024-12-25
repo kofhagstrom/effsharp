@@ -1,11 +1,10 @@
 module Expects where
 
 import Parser (Parser (..))
-import Result
-import ResultHelper (unwrapError)
+import ResultHelper (unwrapError, unwrapOk)
 
-ok :: Parser a error b -> a -> Result (a, error) b
-ok f input = snd <$> run f input
+ok :: (Show a, Show error) => Parser a error ok -> a -> ok
+ok f input = unwrapOk $ snd <$> run f input
 
-error :: (Show ok) => Result (a, b) ok -> b
-error runner = snd $ unwrapError runner
+error :: (Show a, Show output) => Parser a b output -> a -> b
+error f input = snd $ unwrapError (run f input)

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Redundant lambda" #-}
-module Parser (Parser (..)) where
+module Parser (Parser (..), (>>>=)) where
 
 import Control.Applicative (Alternative (empty, (<|>)))
 import Result (Result (..), onError)
@@ -27,7 +27,6 @@ instance (Semigroup input) => Applicative (Parser input error) where
 
 instance (Semigroup input, Monoid input, Monoid error) => Alternative (Parser input error) where
   empty = Parser $ \_ -> Error (mempty, mempty)
-
   p1 <|> p2 =
     Parser $
       \input ->
@@ -42,3 +41,14 @@ instance (Semigroup input) => Monad (Parser input error) where
   p >>= f = Parser $ \input -> do
     (input', a) <- run p input
     run (f a) input'
+
+bindError :: Parser input error t -> (t -> Result error output) -> Parser input error output
+bindError p f = Parser $
+  \input -> do
+    (input', token) <- run p input
+    case f token of
+      Ok ok -> Ok (input', ok)
+      Error e -> Error (input, e)
+
+(>>>=) :: Parser input error t -> (t -> Result error output) -> Parser input error output
+(>>>=) = bindError
