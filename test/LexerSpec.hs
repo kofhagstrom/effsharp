@@ -4,7 +4,7 @@ module LexerSpec (spec) where
 
 import Expects (error, ok)
 import IndexedStream (indexedStreamFromString)
-import Lexer (digit, digits, letterOrDigit, lettersOrDigits)
+import Lexer (digit, digits, letterOrDigit, lettersOrDigits, number)
 import Parsec (ParseError (..))
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Prelude hiding (error)
@@ -30,3 +30,6 @@ spec = do
     it "lettersOrDigits_error" $
       let input = indexedStreamFromString "_1h"
        in error letterOrDigit input `shouldBe` [UnexpectedToken '_']
+    it "number_ok" $
+      let input = indexedStreamFromString "12345"
+       in ok number input `shouldBe` 12345

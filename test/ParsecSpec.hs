@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module ParserSpec (spec) where
+module ParsecSpec (spec) where
 
 import Expects (error, ok)
 import IndexedStream (IndexedStream, indexedStreamFromString)
 import Parsec (ParseError (..), exact, loop, manyOf, match, skip)
-import Parser (Parser, (>>>=))
+import Parser (Parser, (*>>=))
 import Result (Result (Error, Ok))
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Text.Read (readMaybe)
@@ -14,7 +14,7 @@ import Prelude hiding (error, read)
 data Token = Digit Integer | Comma deriving (Show, Eq)
 
 digit :: Parser (IndexedStream Char) [ParseError Char] Token
-digit = manyOf "0123456789" >>>= readInt
+digit = manyOf "0123456789" *>>= readInt
   where
     readInt token =
       case readMaybe token of
@@ -40,5 +40,5 @@ spec = do
       let input = indexedStreamFromString "hejhej"
        in error (skip "oj") input `shouldBe` [UnexpectedToken 'h']
     it "loop_ok" $
-      let input = indexedStreamFromString "1,2"
-       in ok (loop digit comma) input `shouldBe` [Digit 1, Comma, Digit 2]
+      let input = indexedStreamFromString "1,2,3"
+       in ok (loop digit comma) input `shouldBe` [Digit 1, Comma, Digit 2, Comma, Digit 3]

@@ -116,7 +116,7 @@ test-suite effsharp-test
   other-modules:
     Expects
     LexerSpec
-    ParserSpec
+    ParsecSpec
     ResultHelper
 
   -- LANGUAGE extensions used by modules in this package.

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Redundant lambda" #-}
-module Parser (Parser (..), (>>>=)) where
+module Parser (Parser (..), (*>>=)) where
 
 import Control.Applicative (Alternative (empty, (<|>)))
 import Result (Result (..), onError)
@@ -50,5 +50,5 @@ bindError p f = Parser $
       Ok ok -> Ok (input', ok)
       Error e -> Error (input, e)
 
-(>>>=) :: Parser input error t -> (t -> Result error output) -> Parser input error output
-(>>>=) = bindError
+(*>>=) :: Parser input error t -> (t -> Result error output) -> Parser input error output
+(*>>=) = bindError
