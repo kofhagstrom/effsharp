@@ -1,4 +1,4 @@
-module Result (Result (..), fromMaybe, mapError, onError) where
+module Result (Result (..), fromMaybe, mapError, onError, fromEither) where
 
 data Result err ok = Ok ok | Error err deriving (Eq, Show)
 
@@ -24,6 +24,10 @@ instance Monad (Result err) where
 fromMaybe :: err -> Maybe ok -> Result err ok
 fromMaybe err Nothing = Error err
 fromMaybe _ (Just ok) = Ok ok
+
+fromEither :: Either err ok -> Result err ok
+fromEither (Right r) = Ok r
+fromEither (Left l) = Error l
 
 mapError :: (err1 -> err2) -> Result err1 ok -> Result err2 ok
 mapError f (Error err) = Error $ f err

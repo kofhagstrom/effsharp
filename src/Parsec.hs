@@ -13,7 +13,7 @@ module Parsec
     next,
     loop,
     or,
-    match,
+    condition,
   )
 where
 
@@ -39,11 +39,11 @@ satisfy cond =
       then Ok (rest, value)
       else Error (input, [UnexpectedToken value])
 
-match :: (Stream input output, Eq output) => output -> Parser input [ParseError output] output
-match this = satisfy (this ==)
+condition :: (Stream input output, Eq output) => output -> Parser input [ParseError output] output
+condition this = satisfy (this ==)
 
 exact :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input [ParseError a] [a]
-exact = traverse match
+exact = traverse condition
 
 oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input [ParseError output] output
 oneOf these = satisfy (`elem` these)
@@ -70,7 +70,10 @@ next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
 
 -- parses a grammar of type <A> ::= <B> { ("a" | "b" | ... ) <B> }
 loop :: (Monoid s, Stream s t) => Parser s [ParseError t] b -> Parser s [ParseError t] b -> Parser s [ParseError t] [b]
-loop parseB sep = parseB >>= loop'
+loop parseB sep =
+  do
+    b <- parseB
+    loop' b
   where
     loop' b =
       ( do
