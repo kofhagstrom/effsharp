@@ -19,10 +19,9 @@ where
 
 import Control.Applicative (Alternative (some), (<|>))
 import Control.Monad (void)
-import Parser (Parser (Parser), run)
+import Parser (Parser (Parser))
 import Result (Result (..), mapError)
 import Stream (Stream, consume, uncons)
-import Text.Read (readMaybe)
 import Prelude hiding (all, or)
 
 data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String deriving (Eq)
