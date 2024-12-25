@@ -19,28 +19,28 @@ digitChars = "1234567890"
 alphabet :: String
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
-digit :: (Stream stream Char) => Parser stream Char
+digit :: (Stream stream Char) => Parser stream Char Char
 digit = oneOf digitChars
 
-digits :: (Stream stream Char, Monoid stream) => Parser stream String
+digits :: (Stream stream Char, Monoid stream) => Parser stream Char String
 digits = manyOf digitChars
 
-letter :: (Stream stream Char) => Parser stream Char
+letter :: (Stream stream Char) => Parser stream Char Char
 letter = oneOf alphabet
 
-letters :: (Stream stream Char, Monoid stream) => Parser stream String
+letters :: (Stream stream Char, Monoid stream) => Parser stream Char String
 letters = manyOf alphabet
 
-letterOrDigit :: (Stream stream Char, Monoid stream) => Parser stream Char
+letterOrDigit :: (Stream stream Char, Monoid stream) => Parser stream Char Char
 letterOrDigit = letter `or` digit
 
-lettersOrDigits :: (Stream stream Char, Monoid stream) => Parser stream String
+lettersOrDigits :: (Stream stream Char, Monoid stream) => Parser stream Char String
 lettersOrDigits = some letterOrDigit
 
-number :: Parser (IndexedStream Char) Integer
+number :: Parser (IndexedStream Char) Char Integer
 number = digits *>>= readInt
   where
     readInt token =
       case readMaybe token of
         Just int -> Ok int
-        Nothing -> Error UnexpectedToken
+        Nothing -> Error $ UnexpectedToken (head token)
