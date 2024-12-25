@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module IndexedStream (IndexedStream (..), indexedStreamFromString) where
+module Stream.IndexedStream (IndexedStream (..), indexedStreamFromString) where
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import Stream (Stream, uncons)
+import Stream.Stream (Stream, uncons)
 
 newtype Row = Row Int deriving (Eq, Ord)
 

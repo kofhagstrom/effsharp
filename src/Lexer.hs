@@ -4,11 +4,10 @@ module Lexer (Lexer, digit, digits, letter, letters, letterOrDigit, lettersOrDig
 
 import Base.Result (Result (Error, Ok))
 import Control.Applicative (some)
-import IndexedStream (IndexedStream)
 import Parsec.Error (ParseError (..))
-import Parsec.Parsec (manyOf, oneOf, or)
-import Parsec.Parser (Parser, (*>>=))
-import Stream
+import Parsec.Parsec (Parser, manyOf, oneOf, or, (*>>=))
+import Stream.IndexedStream (IndexedStream)
+import Stream.Stream
 import Text.Read (readMaybe)
 import Prelude hiding (or)
 

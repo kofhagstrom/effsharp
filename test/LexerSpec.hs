@@ -3,9 +3,9 @@
 module LexerSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
-import IndexedStream (indexedStreamFromString)
 import Lexer (digit, digits, letterOrDigit, lettersOrDigits, number)
 import Parsec.Error (ParseError (..))
+import Stream.IndexedStream (indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Prelude hiding (error)

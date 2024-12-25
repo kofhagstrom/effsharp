@@ -2,7 +2,9 @@
 {-# LANGUAGE TupleSections #-}
 
 module Parsec.Parsec
-  ( ParseError (..),
+  ( Parser (run),
+    (*>>=),
+    ParseError (..),
     satisfy,
     while,
     exact,
@@ -21,8 +23,8 @@ import Base.Result (Result (..), mapError)
 import Control.Applicative (Alternative (some), (<|>))
 import Control.Monad (void)
 import Parsec.Error (ParseError (..))
-import Parsec.Parser (Parser (Parser))
-import Stream (Stream, consume, uncons)
+import Parsec.Parser (Parser (Parser, run), (*>>=))
+import Stream.Stream (Stream, consume, uncons)
 import Prelude hiding (all, or)
 
 satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError output] output

@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Stream (Stream, uncons, consume) where
+module Stream.Stream (Stream, uncons, consume) where
 
 import Base.Result (Result (..), fromMaybe)
 

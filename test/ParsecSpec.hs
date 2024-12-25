@@ -2,11 +2,9 @@
 
 module ParsecSpec (spec) where
 
-import Base.Result (Result (Error, Ok), mapError)
-import IndexedStream (IndexedStream, indexedStreamFromString)
-import Parsec.Error (ParseError (..))
-import Parsec.Parsec (condition, exact, loop, manyOf, skip)
-import Parsec.Parser (Parser (run), (*>>=))
+import Base.Result (Result (Error, Ok))
+import Parsec.Parsec (ParseError (..), Parser, condition, exact, loop, manyOf, skip, (*>>=))
+import Stream.IndexedStream (IndexedStream, indexedStreamFromString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Text.Read (readMaybe)
