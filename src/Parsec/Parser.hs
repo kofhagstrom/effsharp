@@ -1,10 +1,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Redundant lambda" #-}
-module Parser (Parser (..), (*>>=)) where
+module Parsec.Parser (Parser (..), (*>>=)) where
 
+import Base.Result (Result (..), onError)
 import Control.Applicative (Alternative (empty, (<|>)))
-import Result (Result (..), onError)
 
 newtype Parser input error output
   = Parser

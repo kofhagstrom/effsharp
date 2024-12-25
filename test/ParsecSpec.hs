@@ -2,12 +2,13 @@
 
 module ParsecSpec (spec) where
 
-import Expects (ok)
+import Base.Result (Result (Error, Ok), mapError)
 import IndexedStream (IndexedStream, indexedStreamFromString)
-import Parsec (ParseError (..), condition, exact, loop, manyOf, skip)
-import Parser (Parser (run), (*>>=))
-import Result (Result (Error, Ok), mapError)
+import Parsec.Error (ParseError (..))
+import Parsec.Parsec (condition, exact, loop, manyOf, skip)
+import Parsec.Parser (Parser (run), (*>>=))
 import Test.Hspec (Spec, describe, it, shouldBe)
+import TestHelper (testRun)
 import Text.Read (readMaybe)
 import Prelude hiding (error, read)
 
@@ -24,9 +25,6 @@ number = manyOf "0123456789" *>>= readInt
 comma :: Parser (IndexedStream Char) [ParseError Char] Token
 comma = Comma <$ condition ','
 
-testRun :: Parser a err2 ok -> a -> Result err2 ok
-testRun p input = mapError snd (snd <$> run p input)
-
 spec :: Spec
 spec = do
   describe "misc" $ do
@@ -38,7 +36,7 @@ spec = do
        in testRun (exact "hej") input `shouldBe` Error [UnexpectedToken 'h']
     it "skip_ok" $
       let input = indexedStreamFromString "hejhej"
-       in ok (skip "hej") input `shouldBe` ()
+       in testRun (skip "hej") input `shouldBe` Ok ()
     it "skip_error" $
       let input = indexedStreamFromString "hejhej"
        in testRun (skip "oj") input `shouldBe` Error [UnexpectedToken 'h']

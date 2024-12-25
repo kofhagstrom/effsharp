@@ -2,11 +2,12 @@
 
 module Lexer (Lexer, digit, digits, letter, letters, letterOrDigit, lettersOrDigits, number) where
 
+import Base.Result (Result (Error, Ok))
 import Control.Applicative (some)
 import IndexedStream (IndexedStream)
-import Parsec (ParseError (UnexpectedToken), manyOf, oneOf, or)
-import Parser (Parser, (*>>=))
-import Result (Result (Error, Ok))
+import Parsec.Error (ParseError (..))
+import Parsec.Parsec (manyOf, oneOf, or)
+import Parsec.Parser (Parser, (*>>=))
 import Stream
 import Text.Read (readMaybe)
 import Prelude hiding (or)

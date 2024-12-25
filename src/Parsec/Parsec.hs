@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
 
-module Parsec
+module Parsec.Parsec
   ( ParseError (..),
     satisfy,
     while,
@@ -17,19 +17,13 @@ module Parsec
   )
 where
 
+import Base.Result (Result (..), mapError)
 import Control.Applicative (Alternative (some), (<|>))
 import Control.Monad (void)
-import Parser (Parser (Parser))
-import Result (Result (..), mapError)
+import Parsec.Error (ParseError (..))
+import Parsec.Parser (Parser (Parser))
 import Stream (Stream, consume, uncons)
 import Prelude hiding (all, or)
-
-data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String deriving (Eq)
-
-instance (Show t) => Show (ParseError t) where
-  show (UnexpectedError msg) = msg ++ "\n"
-  show MissingInput = "Missing input"
-  show (UnexpectedToken t) = "Unexpected token: " ++ show t
 
 satisfy :: (Stream input output) => (output -> Bool) -> Parser input [ParseError output] output
 satisfy cond =

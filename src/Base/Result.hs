@@ -1,4 +1,4 @@
-module Result (Result (..), fromMaybe, mapError, onError, fromEither) where
+module Base.Result (Result (..), fromMaybe, mapError, onError, fromEither) where
 
 data Result err ok = Ok ok | Error err deriving (Eq, Show)
 

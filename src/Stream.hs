@@ -3,7 +3,7 @@
 
 module Stream (Stream, uncons, consume) where
 
-import Result (Result (..), fromMaybe)
+import Base.Result (Result (..), fromMaybe)
 
 class Stream s v | s -> v where
   uncons :: s -> Maybe (s, v)
