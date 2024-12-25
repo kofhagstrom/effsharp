@@ -1,18 +1,14 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
 module Parsec.Parser (Parser (..), (*>>=)) where
 
 import Base.Result (Result (..), onError)
 import Control.Applicative (Alternative (empty, (<|>)))
-import Parsec.Error (ParseError)
+import Parsec.Error (ParseError (UnexpectedError))
 
 newtype Parser input output
   = Parser
   { run ::
       input ->
-      Result (input, [ParseError]) (input, output)
+      Result (input, ParseError) (input, output)
   }
 
 instance (Semigroup input) => Functor (Parser input) where
@@ -28,7 +24,7 @@ instance (Semigroup input) => Applicative (Parser input) where
     return (input'', f a)
 
 instance (Semigroup input, Monoid input) => Alternative (Parser input) where
-  empty = Parser $ \_ -> Error (mempty, mempty)
+  empty = Parser $ \_ -> Error (mempty, UnexpectedError "Unexpected Error")
   p1 <|> p2 =
     Parser $
       \input ->
@@ -44,7 +40,7 @@ instance (Semigroup input) => Monad (Parser input) where
     (input', a) <- run p input
     run (f a) input'
 
-bindError :: Parser input t -> (t -> Result [ParseError] output) -> Parser input output
+bindError :: Parser input t -> (t -> Result ParseError output) -> Parser input output
 bindError p f = Parser $
   \input -> do
     (input', token) <- run p input
@@ -52,5 +48,5 @@ bindError p f = Parser $
       Ok ok -> Ok (input', ok)
       Error e -> Error (input, e)
 
-(*>>=) :: Parser input t -> (t -> Result [ParseError] output) -> Parser input output
+(*>>=) :: Parser input t -> (t -> Result ParseError output) -> Parser input output
 (*>>=) = bindError

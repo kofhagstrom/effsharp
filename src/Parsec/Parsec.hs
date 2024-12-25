@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
 
 module Parsec.Parsec
@@ -38,10 +37,10 @@ while cond = Parser $ \input ->
 satisfy :: (Stream input output) => (output -> Bool) -> Parser input output
 satisfy cond =
   Parser $ \input -> do
-    (rest, value) <- mapError (input,) $ consume [MissingInput] input
+    (rest, value) <- mapError (input,) $ consume MissingInput input
     if cond value
       then Ok (rest, value)
-      else Error (input, [UnexpectedToken])
+      else Error (input, UnexpectedToken)
 
 condition :: (Stream input output, Eq output) => output -> Parser input output
 condition this = satisfy (this ==)
@@ -62,7 +61,7 @@ skip :: (Eq a, Stream input a, Semigroup input) => [a] -> Parser input ()
 skip = void . exact
 
 next :: (Stream s t) => Parser s t
-next = Parser $ \input -> mapError (input,) $ consume [MissingInput] input
+next = Parser $ \input -> mapError (input,) $ consume MissingInput input
 
 -- parses a grammar of type <A> ::= <B> { <sep> <B> }
 loop :: (Monoid s, Stream s t) => Parser s b -> Parser s b -> Parser s [b]

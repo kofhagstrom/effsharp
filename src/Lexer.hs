@@ -43,4 +43,4 @@ number = digits *>>= readInt
     readInt token =
       case readMaybe token of
         Just int -> Ok int
-        Nothing -> Error [UnexpectedToken]
+        Nothing -> Error UnexpectedToken

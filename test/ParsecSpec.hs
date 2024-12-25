@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module ParsecSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
@@ -18,7 +16,7 @@ number = manyOf "0123456789" *>>= readInt
     readInt token =
       case readMaybe token of
         Just int -> Ok $ Number int
-        Nothing -> Error [UnexpectedToken]
+        Nothing -> Error UnexpectedToken
 
 comma :: Parser (IndexedStream Char) Token
 comma = Comma <$ condition ','
@@ -31,13 +29,13 @@ spec = do
        in testRun (exact "hej") input `shouldBe` Ok "hej"
     it "exact_error" $
       let input = indexedStreamFromString "hhej"
-       in testRun (exact "hej") input `shouldBe` Error [UnexpectedToken]
+       in testRun (exact "hej") input `shouldBe` Error UnexpectedToken
     it "skip_ok" $
       let input = indexedStreamFromString "hejhej"
        in testRun (skip "hej") input `shouldBe` Ok ()
     it "skip_error" $
       let input = indexedStreamFromString "hejhej"
-       in testRun (skip "oj") input `shouldBe` Error [UnexpectedToken]
+       in testRun (skip "oj") input `shouldBe` Error UnexpectedToken
     it "loop_ok" $
       let input = indexedStreamFromString "1,2,3"
        in testRun (loop number comma) input `shouldBe` Ok [Number 1, Comma, Number 2, Comma, Number 3]
