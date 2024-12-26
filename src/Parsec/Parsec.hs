@@ -10,11 +10,11 @@ module Parsec.Parsec
     skip,
     oneOf,
     noneOf,
-    manyOf,
+    someOf,
     next,
     loop,
     or,
-    condition,
+    equal,
   )
 where
 
@@ -42,17 +42,17 @@ satisfy cond =
       then Ok (rest, value)
       else Error (input, UnexpectedToken value)
 
-condition :: (Eq output, Stream input output) => output -> Parser input output output
-condition this = satisfy (this ==)
+equal :: (Eq output, Stream input output) => output -> Parser input output output
+equal this = satisfy (this ==)
 
 exact :: (Eq value, Stream input value, Semigroup input) => [value] -> Parser input value [value]
-exact = traverse condition
+exact = traverse equal
 
 oneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input output output
 oneOf these = satisfy (`elem` these)
 
-manyOf :: (Monoid input, Stream input value, Foldable t, Eq value) => t value -> Parser input value [value]
-manyOf these = some (oneOf these)
+someOf :: (Monoid input, Stream input value, Foldable t, Eq value) => t value -> Parser input value [value]
+someOf these = some (oneOf these)
 
 noneOf :: (Stream input output, Foldable t, Eq output) => t output -> Parser input output output
 noneOf these = satisfy (`notElem` these)
@@ -63,21 +63,11 @@ skip = void . exact
 next :: (Stream s t) => Parser s t t
 next = Parser $ \input -> mapError (input,) $ consume MissingInput input
 
--- parses a grammar of type <A> ::= <B> { <sep> <B> }
-loop :: (Alternative m, Monad m) => m a -> m a -> m [a]
-loop value sep =
-  do
-    b <- value
-    loop' b
-  where
-    loop' b =
-      ( do
-          s <- sep
-          anotherOne <- value
-          rest <- loop' anotherOne
-          return (b : s : rest)
-      )
-        <|> return [b]
+loop :: (Monad m, Alternative m) => m a -> m [a]
+loop p = do
+  x <- p
+  xs <- loop p <|> return []
+  return (x : xs)
 
 or :: (Alternative f) => f a -> f a -> f a
 or = (<|>)
