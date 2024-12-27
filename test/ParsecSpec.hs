@@ -3,22 +3,36 @@ module ParsecSpec (spec) where
 import Base.Result (Result (Error, Ok))
 import Base.SourcePosition (mkPos)
 import Parsec.Parsec (ParseError (..), Parser, equal, exact, loop, next, skip, someOf, (*>>=))
-import Stream.IndexedStream (IndexedStream (IndexedStream))
+import Stream.IndexedStream (IndexedStream)
 import qualified Stream.IndexedStream as IndexedStream
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Text.Read (readMaybe)
 import Prelude hiding (error, read)
 
-data Token = Number Integer | Comma deriving (Show, Eq)
+data Token = Number Integer | Comma | FloatingPoint Float deriving (Show, Eq)
+
+digits :: Parser (IndexedStream Char) Char [Char]
+digits = someOf "0123456789"
+
+read :: (Read ok) => String -> Result (ParseError t) ok
+read token =
+  case readMaybe token of
+    Just int -> Ok int
+    Nothing -> Error $ UnexpectedError $ "Could not read " ++ token
+
+floatingPoint :: Parser (IndexedStream Char) Char Token
+floatingPoint = FloatingPoint <$> (floatString *>>= read)
+  where
+    floatString =
+      do
+        n <- digits
+        _ <- comma
+        f <- digits
+        return $ n ++ "." ++ f
 
 number :: Parser (IndexedStream Char) Char Token
-number = Number <$> (someOf "0123456789" *>>= readInt)
-  where
-    readInt token =
-      case readMaybe token of
-        Just int -> Ok int
-        Nothing -> Error $ UnexpectedError $ "Could not parse integer from " ++ token
+number = Number <$> (digits *>>= read)
 
 comma :: Parser (IndexedStream Char) Char Token
 comma = Comma <$ equal ','
@@ -52,7 +66,11 @@ spec = do
        in testRun next input `shouldBe` (Nothing, Error MissingInput)
     it "skip_ok" $
       let input = IndexedStream.fromString "hejhej"
-       in let skipTwice = skip "hej" >> skip "hej"
+       in let skipTwice =
+                ( do
+                    skip "hej"
+                    skip "hej"
+                )
            in testRun skipTwice input `shouldBe` (Nothing, Ok ())
     it "skip_error" $
       let input = IndexedStream.fromString "hej"
@@ -74,6 +92,6 @@ spec = do
     it "digitAndComma_error" $
       let input = IndexedStream.fromString "12345"
        in testRun digitAndComma input `shouldBe` (Nothing, Error MissingInput)
-    it "IndexedStream.fromString" $
-      let input = IndexedStream.fromString "hej\nhej"
-       in input `shouldBe` IndexedStream [mkPos 1 1 'h', mkPos 1 2 'e', mkPos 1 3 'j', mkPos 2 1 'h', mkPos 2 2 'e', mkPos 2 3 'j']
+    it "floatingPoint_ok" $ do
+      let input = IndexedStream.fromString "12345,12345"
+      testRun floatingPoint input `shouldBe` (Nothing, Ok $ FloatingPoint 12345.12345)
