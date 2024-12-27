@@ -1,12 +1,17 @@
+{-# LANGUAGE LambdaCase #-}
+
 module TestHelper (testRun, (|>)) where
 
-import Base.Result (Result, mapError)
+import Base.Result (Result (Error, Ok))
 import Parsec.Error (ParseError)
 import Parsec.Parser (Parser (run))
-import Stream.Stream
+import Stream.IndexedStream (IndexedStream, SourcePosition, currPos)
 
-testRun :: (Stream a v) => Parser a v ok -> a -> Result (ParseError v) ok
-testRun p input = mapError snd (snd <$> run p input)
+testRun :: Parser (IndexedStream v) v ok -> IndexedStream v -> (Maybe (SourcePosition v), Result (ParseError v) ok)
+testRun parser input =
+  run parser input |> \case
+    Ok (rest, a) -> (currPos rest, Ok a)
+    Error (rest, e) -> (currPos rest, Error e)
 
 pipe :: a -> (a -> b) -> b
 pipe x f = f x
