@@ -1,17 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Lexer (digit, letter, number, nonLiteral, Token (..), Keyword (..), literal, Literal (..), comment) where
+module Lexer (nonLiteral, Token (..), Keyword (..), literal, Literal (..)) where
 
-import Base.Result (Result (Error, Ok))
+import qualified Base.Result as Result
 import Control.Applicative (some)
-import GHC.Base (Alternative (empty, (<|>)))
+import GHC.Base (Alternative (many, (<|>)))
 import Parsec.Error (ParseError (..))
-import Parsec.Parsec (Parser, exact, oneOf, or, while, (*>>=))
+import Parsec.Parsec (Parser, exact, ignore, oneOf, or, skip, while)
+import qualified Parsec.Parser as Parser
 import Stream.Stream (Stream)
-import Text.Read (readMaybe)
 import Prelude hiding (or)
 
-type Lexer stream ok = Parser stream Char ok
+type Lexer stream = Parser stream Char Token
 
 data Token
   = OpenParenthesisT
@@ -23,7 +23,6 @@ data Token
   | BangT
   | TildeT
   | LogicalEqualityT
-  | InequalityT
   | LessThanT
   | GreaterThanT
   | GreaterThanOrEqualT
@@ -35,6 +34,7 @@ data Token
   | CommaT
   | CommentT String
   | KeywordT Keyword
+  | LiteralT Literal
   deriving (Show, Eq)
 
 data Keyword
@@ -44,9 +44,35 @@ data Keyword
   | ElseKW
   deriving (Show, Eq)
 
-nonLiteral :: (Stream stream Char) => Lexer stream Token
+data Literal
+  = IntL Integer
+  | StringL String
+  | IdentifierL String
+  deriving (Show, Eq)
+
+nonLiteral :: (Stream stream Char) => Lexer stream
 nonLiteral = nonLiteral' stringToToken
   where
+    nonLiteral' s2t =
+      Parser.choice
+        [ case s2t of
+            [] -> Parser.fail $ UnexpectedError "Could not parse non literal from token"
+            (str, t) : rest ->
+              Parser.choice [lit str t, nonLiteral' rest],
+          singleLineComment,
+          multiLineComment
+        ]
+    lit str t = do
+      _ <- exact str
+      return t
+    singleLineComment = do
+      _ <- exact "//"
+      CommentT <$> while (/= '\n')
+    multiLineComment = do
+      _ <- exact "/*"
+      c <- CommentT <$> while (/= '*')
+      _ <- exact "*/"
+      return c
     stringToToken =
       [ ("int", KeywordT IntKW),
         ("string", KeywordT StringKW),
@@ -71,47 +97,43 @@ nonLiteral = nonLiteral' stringToToken
         (":", ColonT),
         (",", CommaT)
       ]
-    nonLiteral' ((str, t) : rest) =
-      ( do
-          _ <- exact str
-          return t
-      )
-        <|> nonLiteral' rest
-    nonLiteral' [] = empty
 
-data Literal
-  = IntL Integer
-  | StringL String
-  | IdentifierL String
-  deriving (Show, Eq)
+literal :: (Stream stream Char, Show stream) => Lexer stream
+literal =
+  Parser.mapError
+    (\input -> const . UnexpectedError $ "Could not parse literal from " ++ show input)
+    ( do
+        ignore whitespace
+        output <- Parser.choice [intL, stringL, identifierL]
+        ignore whitespace
+        return output
+    )
 
-literal :: (Stream stream Char) => Lexer stream Literal
-literal = intL <|> stringL <|> identifierL
-  where
-    letterOrDigit = some (letter `or` digit)
-    intL = IntL <$> number
-    stringL = StringL <$> (exact "\"" *> letterOrDigit <* exact "\"")
-    identifierL =
-      IdentifierL
-        <$> ( do
-                first <- letter
-                rest <- letterOrDigit
-                return (first : rest)
-            )
+stringL :: (Stream stream Char, Show stream) => Lexer stream
+stringL =
+  do
+    skip "\""
+    s <- while (/= '\"')
+    return $ LiteralT $ StringL s
 
-digit :: (Stream stream Char) => Lexer stream Char
-digit = oneOf "1234567890"
+identifierL :: (Stream stream Char, Show stream) => Lexer stream
+identifierL =
+  do
+    first <- letter
+    rest <- many (letter `or` digit)
+    return $ LiteralT $ IdentifierL (first : rest)
 
-letter :: (Stream stream Char) => Lexer stream Char
-letter = oneOf "abcdefghijklmnopqrstuvwxyz"
+intL :: (Stream stream Char, Show stream) => Lexer stream
+intL =
+  do
+    ds <- some digit
+    LiteralT . IntL <$> Parser.liftResult (Result.read (UnexpectedError $ "Could not parse integer from" ++ ds) ds)
 
-number :: (Stream stream Char) => Lexer stream Integer
-number = some digit *>>= readInt
-  where
-    readInt input =
-      case readMaybe input of
-        Just int -> Ok int
-        Nothing -> Error $ UnexpectedError $ "Could not parse integer from " ++ input
+digit :: (Stream stream Char) => Parser stream Char Char
+digit = oneOf ['0' .. '9']
 
-comment :: (Stream stream Char) => Lexer stream String
-comment = exact "//" *> while (/= '\n') <* exact "\n"
+letter :: (Stream stream Char) => Parser stream Char Char
+letter = oneOf ['a' .. 'z'] <|> oneOf ['A' .. 'Z']
+
+whitespace :: (Stream stream Char) => Parser stream Char String
+whitespace = while (== ' ')

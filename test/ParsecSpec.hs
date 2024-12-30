@@ -13,7 +13,7 @@ import Prelude hiding (error, read)
 data Token = Number Integer | Comma | FloatingPoint Float deriving (Show, Eq)
 
 digits :: Parser (IndexedStream Char) Char [Char]
-digits = someOf "0123456789"
+digits = someOf ['0' .. '9']
 
 read :: (Read ok) => String -> Result (ParseError t) ok
 read token =

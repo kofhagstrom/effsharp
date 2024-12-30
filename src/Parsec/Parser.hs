@@ -1,9 +1,11 @@
-module Parsec.Parser (Parser (..), (*>>=)) where
+module Parsec.Parser (Parser (..), (*>>=), bindResult, joinResult, fail, succeed, mapError, choice, end, liftResult) where
 
-import Base.Result (Result (..), onError)
-import Control.Applicative (Alternative (empty, (<|>)))
-import Parsec.Error (ParseError (MultipleError, UnexpectedError))
-import Stream.Stream (Stream)
+import Base.Result (Result (..))
+import qualified Base.Result as Result
+import Control.Applicative (Alternative (empty, (<|>)), asum)
+import Parsec.Error (ParseError (UnexpectedError))
+import Stream.Stream (Stream (uncons))
+import Prelude hiding (fail)
 
 newtype (Stream s v) => Parser s v output
   = Parser
@@ -25,14 +27,14 @@ instance (Semigroup input, Stream input value) => Applicative (Parser input valu
     return (input'', f a)
 
 instance (Semigroup input, Monoid input, Stream input value) => Alternative (Parser input value) where
-  empty = Parser $ \_ -> Error (mempty, UnexpectedError "Unexpected Error")
+  empty = Parser $ \_ -> Error (mempty, mempty)
   p1 <|> p2 =
     Parser $
       \input ->
-        onError
+        Result.onError
           (run p1 input)
           ( \(_, e) ->
-              onError (run p2 input) (\(rest, e') -> Error (rest, MultipleError [e, e']))
+              Result.onError (run p2 input) (\(rest, e') -> Error (rest, e <> e'))
           )
 
 instance (Semigroup input, Stream input value) => Monad (Parser input value) where
@@ -41,8 +43,8 @@ instance (Semigroup input, Stream input value) => Monad (Parser input value) whe
     (input', a) <- run p input
     run (f a) input'
 
-bindError :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) o) -> Parser s v o
-bindError p f = Parser $
+bindResult :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) output) -> Parser s v output
+bindResult p f = Parser $
   \input -> do
     (input', token) <- run p input
     case f token of
@@ -50,4 +52,37 @@ bindError p f = Parser $
       Error e -> Error (input, e)
 
 (*>>=) :: (Stream s v) => Parser s v t -> (t -> Result (ParseError v) o) -> Parser s v o
-(*>>=) = bindError
+(*>>=) = bindResult
+
+joinResult :: (Stream s v) => Parser s v (Result (ParseError v) o) -> Parser s v o
+joinResult p = Parser $
+  \input -> do
+    (input', res) <- run p input
+    case res of
+      Ok ok -> Ok (input', ok)
+      Error e -> Error (input, e)
+
+liftResult :: (Stream s v) => Result (ParseError v) o -> Parser s v o
+liftResult p = Parser $
+  \input -> do
+    (input', res) <- run (return p) input
+    case res of
+      Ok ok -> Ok (input', ok)
+      Error e -> Error (input, e)
+
+fail :: (Stream s v) => ParseError v -> Parser s v o
+fail e = Parser $ \input -> Error (input, e)
+
+succeed :: (Stream s v) => o -> Parser s v o
+succeed o = Parser $ \input -> Ok (input, o)
+
+mapError :: (Stream t v) => (t -> ParseError v -> ParseError v) -> Parser t v output -> Parser t v output
+mapError f p = Parser $ \input -> Result.mapError (f input <$>) (run p input)
+
+choice :: (Stream s v) => [Parser s v o] -> Parser s v o
+choice = asum
+
+end :: (Stream s v) => Parser s v ()
+end = Parser $ \input -> case uncons input of
+  Just _ -> Error (input, UnexpectedError "Expected end of input")
+  Nothing -> Ok (input, ())

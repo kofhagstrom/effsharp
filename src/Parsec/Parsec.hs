@@ -3,6 +3,7 @@
 module Parsec.Parsec
   ( Parser (run),
     (*>>=),
+    bindResult,
     ParseError (..),
     satisfy,
     while,
@@ -15,6 +16,8 @@ module Parsec.Parsec
     loop,
     or,
     equal,
+    notEqual,
+    ignore,
   )
 where
 
@@ -22,7 +25,7 @@ import Base.Result (Result (..), mapError)
 import Control.Applicative (Alternative (some), (<|>))
 import Control.Monad (void)
 import Parsec.Error (ParseError (..))
-import Parsec.Parser (Parser (Parser, run), (*>>=))
+import Parsec.Parser (Parser (Parser, run), bindResult, (*>>=))
 import Stream.Stream (Stream, consume, uncons)
 import Prelude hiding (all, or)
 
@@ -44,6 +47,9 @@ satisfy cond =
 
 equal :: (Eq output, Stream input output) => output -> Parser input output output
 equal this = satisfy (this ==)
+
+notEqual :: (Eq output, Stream input output) => output -> Parser input output output
+notEqual this = satisfy (/= this)
 
 exact :: (Eq value, Stream input value, Semigroup input) => [value] -> Parser input value [value]
 exact = traverse equal
@@ -71,3 +77,6 @@ loop p = do
 
 or :: (Alternative f) => f a -> f a -> f a
 or = (<|>)
+
+ignore :: (Stream input value) => Parser input value output -> Parser input value ()
+ignore = void

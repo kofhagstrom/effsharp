@@ -1,4 +1,7 @@
-module Base.Result (Result (..), fromMaybe, mapError, onError, fromEither) where
+module Base.Result (Result (..), fromMaybe, mapError, onError, fromEither, read) where
+
+import Text.Read (readMaybe)
+import Prelude hiding (read)
 
 data Result err ok = Ok ok | Error err deriving (Eq, Show)
 
@@ -36,3 +39,8 @@ mapError _ (Ok ok) = Ok ok
 onError :: Result err ok -> (err -> Result err ok) -> Result err ok
 onError (Error err) f = f err
 onError ok _ = ok
+
+read :: (Read ok) => err -> String -> Result err ok
+read e ds =
+  fromMaybe e $
+    readMaybe ds

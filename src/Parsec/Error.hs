@@ -1,11 +1,12 @@
 module Parsec.Error (ParseError (..)) where
 
-import Data.List (intercalate)
+data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String | MultipleError [ParseError t] deriving (Eq, Show)
 
-data ParseError t = MissingInput | UnexpectedToken t | UnexpectedError String | MultipleError [ParseError t] deriving (Eq)
+instance Semigroup (ParseError t) where
+  (<>) (MultipleError es1) (MultipleError es2) = MultipleError (es1 ++ es2)
+  (<>) (MultipleError es) e = MultipleError (es ++ [e])
+  (<>) e (MultipleError es) = MultipleError (e : es)
+  (<>) e1 e2 = MultipleError [e1, e2]
 
-instance (Show t) => Show (ParseError t) where
-  show (UnexpectedError msg) = "Unexpected error: " ++ msg
-  show MissingInput = "Missing input"
-  show (UnexpectedToken t) = "Unexpected token: " ++ show t
-  show (MultipleError errors) = intercalate "\n" $ show <$> errors
+instance Monoid (ParseError t) where
+  mempty = UnexpectedError "Empty Error"

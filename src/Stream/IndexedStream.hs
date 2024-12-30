@@ -26,8 +26,10 @@ instance Monoid (IndexedStream value) where
   mappend = (<>)
 
 instance (Show a) => Show (IndexedStream a) where
-  show (IndexedStream (Pos _ _ a : rest)) = show a ++ show (IndexedStream rest)
-  show (IndexedStream []) = ""
+  show = show . values
+
+values :: IndexedStream a -> [a]
+values (IndexedStream positions) = map (\(Pos _ _ a) -> a) positions
 
 fromString :: String -> IndexedStream Char
 fromString str = IndexedStream sourcePositions
