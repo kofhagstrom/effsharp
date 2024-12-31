@@ -2,6 +2,7 @@ module LexerSpec (spec) where
 
 import Base.Result (Result (Ok))
 import Base.SourcePosition (SourcePosition)
+import Data.Functor.Identity
 import Lexer (Keyword (..), Literal (..), Token (..), tokens)
 import Parsec.Error (ParseError)
 import Parsec.Parser (Parser)
@@ -10,7 +11,7 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Prelude hiding (error)
 
-indexedRun :: Parser (IndexedStream.IndexedStream Char) Char ok -> String -> (Maybe (SourcePosition Char), Result (ParseError Char) ok)
+indexedRun :: Parser (IndexedStream.IndexedStream Char) Char Identity ok -> String -> (Maybe (SourcePosition Char), Result (ParseError Char) ok)
 indexedRun parser input = testRun parser (IndexedStream.fromString input)
 
 spec :: Spec

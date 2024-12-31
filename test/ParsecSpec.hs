@@ -2,6 +2,7 @@ module ParsecSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
 import Base.SourcePosition (mkPos)
+import Data.Functor.Identity
 import Parsec.Parsec (ParseError (..), Parser, equal, exact, loop, next, skip, someOf, (*>>=))
 import Stream.IndexedStream (IndexedStream)
 import qualified Stream.IndexedStream as IndexedStream
@@ -12,7 +13,7 @@ import Prelude hiding (error, read)
 
 data Token = Number Integer | Comma | FloatingPoint Float deriving (Show, Eq)
 
-digits :: Parser (IndexedStream Char) Char [Char]
+digits :: Parser (IndexedStream Char) Char Identity [Char]
 digits = someOf ['0' .. '9']
 
 read :: (Read ok) => String -> Result (ParseError t) ok
@@ -21,7 +22,7 @@ read token =
     Just int -> Ok int
     Nothing -> Error $ UnexpectedError $ "Could not read " ++ token
 
-floatingPoint :: Parser (IndexedStream Char) Char Token
+floatingPoint :: Parser (IndexedStream Char) Char Identity Token
 floatingPoint = FloatingPoint <$> (floatString *>>= read)
   where
     floatString =
@@ -31,13 +32,13 @@ floatingPoint = FloatingPoint <$> (floatString *>>= read)
         f <- digits
         return $ n ++ "." ++ f
 
-number :: Parser (IndexedStream Char) Char Token
+number :: Parser (IndexedStream Char) Char Identity Token
 number = Number <$> (digits *>>= read)
 
-comma :: Parser (IndexedStream Char) Char Token
+comma :: Parser (IndexedStream Char) Char Identity Token
 comma = Comma <$ equal ','
 
-digitAndComma :: Parser (IndexedStream Char) Char [Token]
+digitAndComma :: Parser (IndexedStream Char) Char Identity [Token]
 digitAndComma = do
   n <- number
   c <- comma
