@@ -1,12 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Lexer (nonLiteral, Token (..), Keyword (..), literal, Literal (..)) where
+module Lexer
+  ( tokens,
+    Token (..),
+    Keyword (..),
+    Literal (..),
+  )
+where
 
 import qualified Base.Result as Result
-import Control.Applicative (some)
-import GHC.Base (Alternative (many, (<|>)))
+import Control.Applicative (Alternative (many, (<|>)), some)
 import Parsec.Error (ParseError (..))
-import Parsec.Parsec (Parser, exact, ignore, oneOf, or, skip, while)
+import Parsec.Parsec (Parser, exact, ignore, noneOf, oneOf, or, skip, while)
 import qualified Parsec.Parser as Parser
 import Stream.Stream (Stream)
 import Prelude hiding (or)
@@ -41,6 +46,7 @@ data Keyword
   = IntKW
   | StringKW
   | IfKW
+  | ThenKW
   | ElseKW
   deriving (Show, Eq)
 
@@ -58,26 +64,19 @@ nonLiteral = nonLiteral' stringToToken
         [ case s2t of
             [] -> Parser.fail $ UnexpectedError "Could not parse non literal from token"
             (str, t) : rest ->
-              Parser.choice [lit str t, nonLiteral' rest],
-          singleLineComment,
-          multiLineComment
+              Parser.choice [lit str t, nonLiteral' rest]
         ]
+
     lit str t = do
-      _ <- exact str
+      skip str
       return t
-    singleLineComment = do
-      _ <- exact "//"
-      CommentT <$> while (/= '\n')
-    multiLineComment = do
-      _ <- exact "/*"
-      c <- CommentT <$> while (/= '*')
-      _ <- exact "*/"
-      return c
+
     stringToToken =
       [ ("int", KeywordT IntKW),
         ("string", KeywordT StringKW),
         ("if", KeywordT IfKW),
         ("else", KeywordT ElseKW),
+        ("then", KeywordT ThenKW),
         ("=", LogicalEqualityT),
         ("<>", NotEqualT),
         ("!", BangT),
@@ -101,19 +100,15 @@ nonLiteral = nonLiteral' stringToToken
 literal :: (Stream stream Char, Show stream) => Lexer stream
 literal =
   Parser.mapError
-    (\input -> const . UnexpectedError $ "Could not parse literal from " ++ show input)
-    ( do
-        ignore whitespace
-        output <- Parser.choice [intL, stringL, identifierL]
-        ignore whitespace
-        return output
-    )
+    (const . UnexpectedError . ("Could not parse literal from " ++) . show)
+    $ Parser.choice [intL, stringL, identifierL]
 
 stringL :: (Stream stream Char, Show stream) => Lexer stream
 stringL =
   do
     skip "\""
-    s <- while (/= '\"')
+    s <- many $ noneOf "\""
+    skip "\""
     return $ LiteralT $ StringL s
 
 identifierL :: (Stream stream Char, Show stream) => Lexer stream
@@ -124,10 +119,10 @@ identifierL =
     return $ LiteralT $ IdentifierL (first : rest)
 
 intL :: (Stream stream Char, Show stream) => Lexer stream
-intL =
-  do
-    ds <- some digit
-    LiteralT . IntL <$> Parser.liftResult (Result.read (UnexpectedError $ "Could not parse integer from" ++ ds) ds)
+intL = do
+  ds <- some digit
+  result <- Parser.liftResult (Result.read (UnexpectedError $ "Could not parse integer from" ++ ds) ds)
+  return $ LiteralT $ IntL result
 
 digit :: (Stream stream Char) => Parser stream Char Char
 digit = oneOf ['0' .. '9']
@@ -135,5 +130,34 @@ digit = oneOf ['0' .. '9']
 letter :: (Stream stream Char) => Parser stream Char Char
 letter = oneOf ['a' .. 'z'] <|> oneOf ['A' .. 'Z']
 
-whitespace :: (Stream stream Char) => Parser stream Char String
-whitespace = while (== ' ')
+spaces :: (Stream stream Char) => Parser stream Char String
+spaces = while (== ' ')
+
+newLine :: (Stream stream Char) => Parser stream Char String
+newLine = exact "\n"
+
+singleLineComment :: (Stream stream Char) => Parser stream Char String
+singleLineComment = do
+  _ <- exact "//"
+  while (/= '\n')
+
+token :: (Stream stream Char, Show stream) => Parser stream Char Token
+token =
+  Parser.choice
+    [ do
+        ignore (Parser.choice [newLine, singleLineComment])
+        token,
+      do
+        ignore spaces
+        output <- nonLiteral
+        ignore spaces
+        return output,
+      do
+        ignore spaces
+        output <- literal
+        ignore spaces
+        return output
+    ]
+
+tokens :: (Stream stream Char, Show stream) => Parser stream Char [Token]
+tokens = many token
