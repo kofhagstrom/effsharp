@@ -1,44 +1,37 @@
 module ParsecSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
+import qualified Base.Result as Result
 import Base.SourcePosition (mkPos)
-import Data.Functor.Identity
+import Data.Functor.Identity (Identity)
 import Parsec.Parsec (ParseError (..), Parser, equal, exact, loop, next, skip, someOf, (*>>=))
 import Stream.IndexedStream (IndexedStream)
 import qualified Stream.IndexedStream as IndexedStream
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
-import Text.Read (readMaybe)
 import Prelude hiding (error, read)
 
 data Token = Number Integer | Comma | FloatingPoint Float deriving (Show, Eq)
 
-digits :: Parser (IndexedStream Char) Char Identity [Char]
-digits = someOf ['0' .. '9']
+type TestParser a = Parser (IndexedStream Char) Char Identity a
 
-read :: (Read ok) => String -> Result (ParseError t) ok
-read token =
-  case readMaybe token of
-    Just int -> Ok int
-    Nothing -> Error $ UnexpectedError $ "Could not read " ++ token
-
-floatingPoint :: Parser (IndexedStream Char) Char Identity Token
-floatingPoint = FloatingPoint <$> (floatString *>>= read)
+floatingPoint :: TestParser Token
+floatingPoint = FloatingPoint <$> (floatString *>>= (\token -> Result.read (UnexpectedError $ "Could not read" ++ show token) token))
   where
     floatString =
       do
-        n <- digits
+        n <- someOf ['0' .. '9']
         _ <- comma
-        f <- digits
+        f <- someOf ['0' .. '9']
         return $ n ++ "." ++ f
 
-number :: Parser (IndexedStream Char) Char Identity Token
-number = Number <$> (digits *>>= read)
+number :: TestParser Token
+number = Number <$> (someOf ['0' .. '9'] *>>= (\token -> Result.read (UnexpectedError $ "Could not read" ++ show token) token))
 
-comma :: Parser (IndexedStream Char) Char Identity Token
+comma :: TestParser Token
 comma = Comma <$ equal ','
 
-digitAndComma :: Parser (IndexedStream Char) Char Identity [Token]
+digitAndComma :: TestParser [Token]
 digitAndComma = do
   n <- number
   c <- comma
