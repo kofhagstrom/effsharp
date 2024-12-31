@@ -4,7 +4,7 @@ import Base.Result (Result (Ok))
 import Base.SourcePosition (SourcePosition)
 import Lexer (Keyword (..), Literal (..), Token (..), tokens)
 import Parsec.Error (ParseError)
-import Parsec.Parsec (Parser)
+import Parsec.Parser (Parser)
 import qualified Stream.IndexedStream as IndexedStream
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)

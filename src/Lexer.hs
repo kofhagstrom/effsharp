@@ -56,7 +56,7 @@ data Literal
   | IdentifierL String
   deriving (Show, Eq)
 
-nonLiteral :: (Stream stream Char) => Lexer stream
+nonLiteral :: (Stream stream Maybe Char) => Lexer stream
 nonLiteral = nonLiteral' stringToToken
   where
     nonLiteral' s2t =
@@ -97,13 +97,13 @@ nonLiteral = nonLiteral' stringToToken
         (",", CommaT)
       ]
 
-literal :: (Stream stream Char, Show stream) => Lexer stream
+literal :: (Stream stream Maybe Char, Show stream) => Lexer stream
 literal =
   Parser.mapError
     (const . UnexpectedError . ("Could not parse literal from " ++) . show)
     $ Parser.choice [intL, stringL, identifierL]
 
-stringL :: (Stream stream Char, Show stream) => Lexer stream
+stringL :: (Stream stream Maybe Char, Show stream) => Lexer stream
 stringL =
   do
     skip "\""
@@ -111,37 +111,37 @@ stringL =
     skip "\""
     return $ LiteralT $ StringL s
 
-identifierL :: (Stream stream Char, Show stream) => Lexer stream
+identifierL :: (Stream stream Maybe Char, Show stream) => Lexer stream
 identifierL =
   do
     first <- letter
     rest <- many (letter `or` digit)
     return $ LiteralT $ IdentifierL (first : rest)
 
-intL :: (Stream stream Char, Show stream) => Lexer stream
+intL :: (Stream stream Maybe Char, Show stream) => Lexer stream
 intL = do
   ds <- some digit
   result <- Parser.liftResult (Result.read (UnexpectedError $ "Could not parse integer from" ++ ds) ds)
   return $ LiteralT $ IntL result
 
-digit :: (Stream stream Char) => Parser stream Char Char
+digit :: (Stream stream Maybe Char) => Parser stream Char Char
 digit = oneOf ['0' .. '9']
 
-letter :: (Stream stream Char) => Parser stream Char Char
+letter :: (Stream stream Maybe Char) => Parser stream Char Char
 letter = oneOf ['a' .. 'z'] <|> oneOf ['A' .. 'Z']
 
-spaces :: (Stream stream Char) => Parser stream Char String
+spaces :: (Stream stream Maybe Char) => Parser stream Char String
 spaces = while (== ' ')
 
-newLine :: (Stream stream Char) => Parser stream Char String
+newLine :: (Stream stream Maybe Char) => Parser stream Char String
 newLine = exact "\n"
 
-singleLineComment :: (Stream stream Char) => Parser stream Char String
+singleLineComment :: (Stream stream Maybe Char) => Parser stream Char String
 singleLineComment = do
   _ <- exact "//"
   while (/= '\n')
 
-token :: (Stream stream Char, Show stream) => Parser stream Char Token
+token :: (Stream stream Maybe Char, Show stream) => Parser stream Char Token
 token =
   Parser.choice
     [ do
@@ -159,5 +159,5 @@ token =
         return output
     ]
 
-tokens :: (Stream stream Char, Show stream) => Parser stream Char [Token]
+tokens :: (Stream stream Maybe Char, Show stream) => Parser stream Char [Token]
 tokens = many token
