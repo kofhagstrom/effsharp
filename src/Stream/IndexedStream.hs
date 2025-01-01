@@ -3,9 +3,9 @@
 
 module Stream.IndexedStream (IndexedStream (..), currPos, Line (..), Col (..), fromString) where
 
-import Base.SourcePosition (Col (..), Line (..), SourcePosition (..))
 import Data.List (sortBy)
 import Data.Ord (comparing)
+import Stream.SourcePosition (Col (..), Line (..), SourcePosition (..))
 import Stream.Stream (Stream, uncons, values)
 
 newtype IndexedStream value = IndexedStream [SourcePosition value] deriving (Eq)

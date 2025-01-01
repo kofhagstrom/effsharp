@@ -61,12 +61,12 @@ library
   -- Modules exported by the library.
   exposed-modules:
     Base.Result
-    Base.SourcePosition
     Lexer
     Parsec.Error
     Parsec.Parsec
     Parsec.Parser
     Stream.IndexedStream
+    Stream.SourcePosition
     Stream.Stream
 
   -- Modules included in this library but not exported.

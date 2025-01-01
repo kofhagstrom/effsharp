@@ -1,12 +1,12 @@
 module LexerSpec (spec) where
 
 import Base.Result (Result (Ok))
-import Base.SourcePosition (SourcePosition)
-import Data.Functor.Identity
+import Data.Functor.Identity (Identity)
 import Lexer (Keyword (..), Literal (..), Token (..), tokens)
 import Parsec.Error (ParseError)
 import Parsec.Parser (Parser)
 import qualified Stream.IndexedStream as IndexedStream
+import Stream.SourcePosition (SourcePosition)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Prelude hiding (error)

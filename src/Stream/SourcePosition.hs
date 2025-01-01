@@ -1,4 +1,4 @@
-module Base.SourcePosition (SourcePosition (..), Line (..), Col (..), mkPos) where
+module Stream.SourcePosition (SourcePosition (..), Line (..), Col (..), mkPos) where
 
 newtype Line = Line Int deriving (Eq, Ord)
 

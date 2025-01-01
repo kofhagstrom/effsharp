@@ -2,11 +2,11 @@ module ParsecSpec (spec) where
 
 import Base.Result (Result (Error, Ok))
 import qualified Base.Result as Result
-import Base.SourcePosition (mkPos)
 import Data.Functor.Identity (Identity)
 import Parsec.Parsec (ParseError (..), Parser, equal, exact, loop, next, skip, someOf, (*>>=))
 import Stream.IndexedStream (IndexedStream)
 import qualified Stream.IndexedStream as IndexedStream
+import Stream.SourcePosition (mkPos)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import TestHelper (testRun)
 import Prelude hiding (error, read)
