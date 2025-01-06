@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 
 module Lexer
   ( tokens,
@@ -16,11 +17,11 @@ import qualified Parsec.Parser as Parser
 import Stream.Stream (Stream)
 import Prelude hiding (or)
 
-type Lexer m stream = Parser stream Char m Token
-
 data Token
   = OpenParenthesisT
   | CloseParenthesisT
+  | OpenBracketT
+  | CloseBracketT
   | PlusT
   | AsteriskT
   | DivisionT
@@ -43,11 +44,12 @@ data Token
   deriving (Show, Eq)
 
 data Keyword
-  = IntKW
-  | StringKW
-  | IfKW
+  = IfKW
   | ThenKW
   | ElseKW
+  | LetKW
+  | InKW
+  | TypeKW
   deriving (Show, Eq)
 
 data Literal
@@ -56,54 +58,54 @@ data Literal
   | IdentifierL String
   deriving (Show, Eq)
 
-nonLiteral :: (Stream stream Maybe Char, Monad m) => Lexer m stream
-nonLiteral = nonLiteral' stringToToken
+nonLiteral :: (Stream stream Maybe Char, Monad m) => Parser stream Char m Token
+nonLiteral =
+  nonLiteral'
+    [ ("if", KeywordT IfKW),
+      ("else", KeywordT ElseKW),
+      ("then", KeywordT ThenKW),
+      ("let", KeywordT LetKW),
+      ("in", KeywordT InKW),
+      ("type", KeywordT TypeKW),
+      ("=", LogicalEqualityT),
+      ("<>", NotEqualT),
+      ("!", BangT),
+      ("<=", LessThanOrEqualT),
+      ("<", LessThanT),
+      (">=", GreaterThanOrEqualT),
+      (">", GreaterThanT),
+      ("&&", AndT),
+      ("||", OrT),
+      ("(", OpenParenthesisT),
+      (")", CloseParenthesisT),
+      ("[", OpenBracketT),
+      ("]", CloseBracketT),
+      ("-", MinusT),
+      ("~", TildeT),
+      ("+", PlusT),
+      ("*", AsteriskT),
+      ("/", DivisionT),
+      (":", ColonT),
+      (",", CommaT)
+    ]
   where
     nonLiteral' s2t =
-      Parser.choice
-        [ case s2t of
-            [] -> Parser.fail $ UnexpectedError "Could not parse non literal from token"
-            (str, t) : rest ->
-              Parser.choice [lit str t, nonLiteral' rest]
-        ]
+      case s2t of
+        [] -> Parser.fail $ UnexpectedError "Could not parse non literal from token"
+        (str, t) : rest ->
+          Parser.choice [lit str t, nonLiteral' rest]
 
     lit str t = do
       skip str
       return t
 
-    stringToToken =
-      [ ("int", KeywordT IntKW),
-        ("string", KeywordT StringKW),
-        ("if", KeywordT IfKW),
-        ("else", KeywordT ElseKW),
-        ("then", KeywordT ThenKW),
-        ("=", LogicalEqualityT),
-        ("<>", NotEqualT),
-        ("!", BangT),
-        ("<=", LessThanOrEqualT),
-        ("<", LessThanT),
-        (">=", GreaterThanOrEqualT),
-        (">", GreaterThanT),
-        ("&&", AndT),
-        ("||", OrT),
-        ("(", OpenParenthesisT),
-        (")", CloseParenthesisT),
-        ("-", MinusT),
-        ("~", TildeT),
-        ("+", PlusT),
-        ("*", AsteriskT),
-        ("/", DivisionT),
-        (":", ColonT),
-        (",", CommaT)
-      ]
-
-literal :: (Stream stream Maybe Char, Show stream, Monad m) => Lexer m stream
+literal :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m Token
 literal =
   Parser.mapError
     (const . UnexpectedError . ("Could not parse literal from " ++) . show)
     $ Parser.choice [intL, stringL, identifierL]
 
-stringL :: (Stream stream Maybe Char, Show stream, Monad m) => Lexer m stream
+stringL :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m Token
 stringL =
   do
     skip "\""
@@ -111,14 +113,14 @@ stringL =
     skip "\""
     return $ LiteralT $ StringL s
 
-identifierL :: (Stream stream Maybe Char, Show stream, Monad m) => Lexer m stream
+identifierL :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m Token
 identifierL =
   do
     first <- letter
     rest <- many (letter `or` digit)
     return $ LiteralT $ IdentifierL (first : rest)
 
-intL :: (Stream stream Maybe Char, Show stream, Monad m) => Lexer m stream
+intL :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m Token
 intL = do
   ds <- some digit
   result <- Parser.liftResult (Result.read (UnexpectedError $ "Could not parse integer from" ++ ds) ds)
@@ -144,20 +146,25 @@ singleLineComment = do
 token :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m Token
 token =
   Parser.choice
-    [ do
-        ignore (Parser.choice [newLine, singleLineComment])
-        token,
-      do
-        ignore spaces
-        output <- nonLiteral
-        ignore spaces
-        return output,
+    [ continue,
+      nonLit,
+      lit
+    ]
+  where
+    continue = do
+      ignore (Parser.choice [newLine, singleLineComment])
+      token
+    nonLit = do
+      ignore spaces
+      output <- nonLiteral
+      ignore spaces
+      return output
+    lit =
       do
         ignore spaces
         output <- literal
         ignore spaces
         return output
-    ]
 
 tokens :: (Stream stream Maybe Char, Show stream, Monad m) => Parser stream Char m [Token]
 tokens = many token
