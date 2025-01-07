@@ -134,8 +134,9 @@ test-suite effsharp-test
 
   -- Test dependencies.
   build-depends:
-    , base      ^>=4.17.2.1
+    , base        ^>=4.17.2.1
     , effsharp
     , hspec
+    , QuickCheck
 
   build-tool-depends: hspec-discover:hspec-discover
